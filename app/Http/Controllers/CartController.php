@@ -16,6 +16,41 @@ class CartController extends Controller
      * Behavior: adds +1 of the chosen size; if the same size is added again,
      * quantity increments. Stock is validated against ProductSize.qty.
      */
+   public function index()
+{
+    if (!\Illuminate\Support\Facades\Auth::check()) {
+        return redirect()->route('register');
+    }
+
+    $uid  = \Illuminate\Support\Facades\Auth::id();
+
+    $rows = \App\Models\CustomerCart::with('product')
+        ->where('user_id', $uid)
+        ->latest('added_at')
+        ->get();
+
+    $items = $rows->map(function ($row) {
+        $p = $row->product;
+        return [
+            'id'       => $row->id,
+            'name'     => $p->product_name ?? 'Product',
+            'price'    => (float) ($p->price ?? 0),
+            'size'     => $row->size,
+            'quantity' => (int) $row->quantity,
+            'img'      => $p?->main_image_url,
+        ];
+    })->values();
+
+    $count    = (int) $rows->sum('quantity');
+    $subtotal = (float) $rows->sum(fn($r) => (float)($r->product->price ?? 0) * (int)$r->quantity);
+    $subtotal = round($subtotal, 2);
+    $tax      = round($subtotal * 0.07, 2); // 7%
+    $delivery = 0.00;
+    $total    = $subtotal + $tax + $delivery;
+
+    return view('user.cart', compact('items','count','subtotal','tax','delivery','total'));
+}
+
     public function store(Request $request)
     {
         if (!Auth::check()) {
@@ -144,4 +179,80 @@ class CartController extends Controller
 
         return ['items' => $items, 'count' => $count];
     }
+    /** GET /api/cart/full */
+    public function full()
+    {
+        $this->authorizeAuth();
+        [$items, $count, $subtotal] = $this->fullData(Auth::id());
+
+        $tax = round($subtotal * 0.07, 2);
+        return response()->json([
+            'items'    => $items,
+            'count'    => $count,
+            'subtotal' => $subtotal,
+            'tax'      => $tax,
+            'delivery' => 0.00,
+            'total'    => $subtotal + $tax,
+        ]);
+    }
+
+    /** GET /api/cart/summary */
+    public function summary()
+    {
+        $this->authorizeAuth();
+        [, $count, $subtotal] = $this->fullData(Auth::id());
+        $tax = round($subtotal * 0.07, 2);
+
+        return response()->json([
+            'count'    => $count,
+            'subtotal' => $subtotal,
+            'tax'      => $tax,
+            'delivery' => 0.00,
+            'total'    => $subtotal + $tax,
+        ]);
+    }
+
+    // ---------- helpers ----------
+    private function authorizeAuth(): void
+    {
+        if (!Auth::check()) {
+            abort(401, 'Unauthenticated');
+        }
+    }
+
+    /** Return [items, countQty, subtotal] */
+    private function fullData(int $userId): array
+    {
+        $rows = \App\Models\CustomerCart::with('product')
+            ->where('user_id', $userId)
+            ->latest('added_at')
+            ->get();
+
+        $items = $rows->map(function ($row) {
+            $p = $row->product;
+            return [
+                'id'       => $row->id,
+                'name'     => $p->product_name ?? 'Product',
+                'price'    => (float) ($p->price ?? 0),
+                'size'     => $row->size,
+                'quantity' => (int) $row->quantity, // not editable in UI
+                'img'      => $p?->main_image_url,
+            ];
+        })->values();
+
+        $countQty = (int) $rows->sum('quantity');
+        $subtotal = (float) $rows->sum(fn($r) => (float)($r->product->price ?? 0) * (int)$r->quantity);
+
+        return [$items, $countQty, round($subtotal, 2)];
+    }
+    public function count()
+    {
+        if (!\Illuminate\Support\Facades\Auth::check()) {
+            return response()->json(['count' => 0]);
+        }
+        $uid   = \Illuminate\Support\Facades\Auth::id();
+        $count = (int) \App\Models\CustomerCart::where('user_id', $uid)->sum('quantity');
+        return response()->json(['count' => $count]);
+    }
+
 }

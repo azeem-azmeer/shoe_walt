@@ -14,6 +14,7 @@ export default defineConfig({
         'resources/js/admin-product-create.js',
         'resources/js/admin-products.js',
         'resources/js/admin-product-edit.js',
+        'resources/js/user-cart.js',
       ],
       refresh: true,
     }),

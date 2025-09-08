@@ -1,10 +1,12 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\{FirebaseAuthController, ProductController, WishlistController};
+use App\Http\Controllers\{FirebaseAuthController, ProductController, WishlistController, CartController};
 
+// --- Auth (web) ---
 Route::post('/api/auth/firebase', FirebaseAuthController::class)->name('auth.firebase');
 
+// --- Public storefront ---
 Route::view('/index', 'user.index')->name('user.index');
 Route::redirect('/', '/index');
 
@@ -13,29 +15,42 @@ Route::view('/mens',   'user.mens')->name('user.mens');
 Route::view('/womans', 'user.womans')->name('user.womans');
 Route::view('/kids',   'user.kids')->name('user.kids');
 
-Route::middleware('auth')->group(function () {
+// --- Customer area (requires auth) ---
+Route::middleware(['auth'])->group(function () {
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('user.wishlist');
     Route::view('/checkout', 'user.checkout')->name('user.checkout');
+
+    // Cart
+    Route::get('/cart', [CartController::class, 'index'])->name('user.cart');
 });
 
-Route::view('/cart', 'user.cart')->name('user.cart');
+// Friendly alias: /bag -> /cart
 Route::get('/bag', fn () => redirect()->route('user.cart'))->name('user.viewbag');
 
-// Dashboard redirect
-Route::middleware(['auth','verified'])->get('/dashboard', function () {
+// --- Dashboard redirect ---
+Route::middleware(['auth', 'verified'])->get('/dashboard', function () {
     return auth()->user()->role === 'admin'
         ? redirect()->route('admin.dashboard')
         : redirect()->route('user.index');
 })->name('dashboard');
 
-// Admin
-Route::middleware(['auth','verified','admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::view('/dashboard', 'admin.dashboard')->name('dashboard');
-    Route::get('/products',           [ProductController::class, 'index'])->name('products');
-    Route::view('/products/create',   'admin.product-create')->name('products.create');
-    Route::get('/products/{id}/edit', [ProductController::class, 'edit'])->whereNumber('id')->name('products.edit');
-    Route::view('/orders',    'admin.order')->name('orders');
-    Route::view('/customers', 'admin.customer')->name('customers');
-    Route::view('/reorders',  'admin.reorder')->name('reorders');
-    Route::redirect('/', '/admin/dashboard')->name('home');
-});
+// --- Admin area ---
+Route::middleware(['auth', 'verified', 'admin'])
+    ->prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        Route::view('/dashboard', 'admin.dashboard')->name('dashboard');
+
+        // Products
+        Route::get('/products',           [ProductController::class, 'index'])->name('products');
+        Route::view('/products/create',   'admin.product-create')->name('products.create');
+        Route::get('/products/{id}/edit', [ProductController::class, 'edit'])
+            ->whereNumber('id')->name('products.edit');
+
+        // Other admin pages
+        Route::view('/orders',    'admin.order')->name('orders');
+        Route::view('/customers', 'admin.customer')->name('customers');
+        Route::view('/reorders',  'admin.reorder')->name('reorders');
+
+        Route::redirect('/', '/admin/dashboard')->name('home');
+    });
