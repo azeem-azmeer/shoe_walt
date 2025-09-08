@@ -6,8 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class CustomerWishlist extends Model
 {
-    // If your table is singular (per your screenshot), KEEP this.
-    // If your table is plural `customer_wishlists`, remove this line.
+
     protected $table = 'wishlist';
 
     public $timestamps = false;
