@@ -124,35 +124,5 @@
     </div>
   </div>
 
-  <script>
-    async function deleteProduct(id) {
-      if (!confirm('Delete this product?')) return;
-      try {
-        await ensureCsrf();
-        const res = await fetch(`/api/admin/products/${id}`, {
-          method: 'DELETE',
-          headers: {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'),
-          },
-          credentials: 'include',
-        });
-        if (!res.ok) throw new Error('Delete failed');
-        location.reload();
-      } catch (e) {
-        alert('Failed to delete. Check console.');
-        console.error(e);
-      }
-    }
-    async function ensureCsrf() {
-      if (!getCookie('XSRF-TOKEN')) {
-        await fetch('/sanctum/csrf-cookie', { credentials: 'include' });
-      }
-    }
-    function getCookie(name) {
-      const m = document.cookie.split('; ').find(r => r.startsWith(name + '='));
-      return m ? decodeURIComponent(m.split('=')[1]) : null;
-    }
-  </script>
+  @vite('resources/js/admin-products.js')
 </x-app-layout>

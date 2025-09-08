@@ -409,6 +409,6 @@
     };
   </script>
 
-  @vite('resources/js/pdp.js')
+  @vite('resources/js/user-productpreview.js')
 
 </x-app-layout>

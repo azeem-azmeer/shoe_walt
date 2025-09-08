@@ -2,8 +2,8 @@
 
 namespace App\Livewire\Admin;
 
-use App\Models\Product;
 use Livewire\Component;
+use App\Models\Product;
 
 class StatusToggle extends Component
 {
@@ -20,14 +20,14 @@ class StatusToggle extends Component
     {
         $next = $this->status === 'Active' ? 'Inactive' : 'Active';
 
-        // Update just this product’s status
+        // Update DB
         Product::where('product_id', $this->productId)->update(['status' => $next]);
 
-        // Reflect the change in the UI
+        // Reflect immediately in UI
         $this->status = $next;
 
-        // (optional) notify parent/listeners
-        $this->dispatch('product-status-updated', id: $this->productId, status: $next);
+        // Optional: notify listeners (parent/table) if you add one later
+        $this->dispatch('product-status-updated', productId: $this->productId, status: $next);
     }
 
     public function render()

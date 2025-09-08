@@ -103,35 +103,16 @@
       </div>
     </div>
   </div>
-
+  {{-- Provide config to JS (respects sub-folder deployments) --}}
   <script>
-    function bindPreview(fileInputId, imgId, placeholderId) {
-      const input = document.getElementById(fileInputId);
-      const img   = document.getElementById(imgId);
-      const ph    = document.getElementById(placeholderId);
-      if (!input || !img || !ph) return;
-      input.addEventListener('change', () => {
-        const f = input.files?.[0];
-        if (f) { img.src = URL.createObjectURL(f); img.classList.remove('hidden'); ph.classList.add('hidden'); }
-        else   { img.src = ''; img.classList.add('hidden'); ph.classList.remove('hidden'); }
-      });
-    }
-    bindPreview('mainInput', 'mainPreview', 'mainPlaceholder');
-    for (let i = 0; i < 4; i++) bindPreview(`vInput-${i}`, `vPreview-${i}`, `vPlaceholder-${i}`);
-
-    async function submitCreate(ev) {
-      ev.preventDefault();
-      const fd = new FormData(ev.target);
-      const res = await api('/api/admin/products', { method: 'POST', body: fd });
-      if (res.status === 401) { alert('Not authenticated. Please log in again.'); return false; }
-      if (res.status === 419) { alert('CSRF expired. Refresh and try again.'); return false; }
-      if (!res.ok) {
-        let msg = 'Create failed';
-        try { const j = await res.json(); if (j?.message) msg = j.message; } catch {}
-        alert(msg); return false;
-      }
-      window.location.href = "{{ route('admin.products') }}";
-      return false;
-    }
+    window.__APP = Object.assign({}, window.__APP || {}, {
+      baseUrl: @js(url('/')),
+      csrf: @js(csrf_token()),
+      adminProductsUrl: @js(route('admin.products')),
+    });
   </script>
+
+  @vite('resources/js/admin-product-create.js')
+
+  
 </x-app-layout>

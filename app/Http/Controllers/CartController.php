@@ -55,7 +55,7 @@ class CartController extends Controller
 
         if ($remaining <= 0) {
             return response()->json([
-                'message'   => "Sorry to inform there is no stock available in size {$sizeLabel}.",
+                'message'   => "Sorry to inform there is no stock left in size {$sizeLabel}.",
                 'remaining' => 0,
             ], 422);
         }

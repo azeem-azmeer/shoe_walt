@@ -143,54 +143,5 @@
         </div>
     </div>
 
-    {{-- Live previews + submit via API helper --}}
-    <script>
-        function bindPreview(inputId, previewId, placeholderId) {
-            const input = document.getElementById(inputId);
-            const img   = document.getElementById(previewId);
-            const ph    = document.getElementById(placeholderId);
-            if (!input || !img || !ph) return;
-
-            input.addEventListener('change', () => {
-                const file = input.files && input.files[0];
-                if (file) {
-                    const url = URL.createObjectURL(file);
-                    img.src = url;
-                    img.classList.remove('hidden');
-                    ph.classList.add('hidden');
-                } else {
-                    img.src = '';
-                    img.classList.add('hidden');
-                    ph.classList.remove('hidden');
-                }
-            });
-        }
-
-        // main + four view images
-        bindPreview('mainInput', 'mainPreview', 'mainPlaceholder');
-        for (let i = 0; i < 4; i++) {
-            bindPreview(`vInput-${i}`, `vPreview-${i}`, `vPlaceholder-${i}`);
-        }
-
-        async function submitEdit(ev, id) {
-            ev.preventDefault();
-            const fd = new FormData(ev.target);
-            fd.append('_method', 'PUT');
-
-            const res = await api(`/api/admin/products/${id}`, {
-                method: 'POST',  // multipart + _method=PUT for Laravel
-                body: fd
-            });
-
-            if (res.status === 401) { alert('Not authenticated. Please log in again.'); return false; }
-            if (res.status === 419) { alert('CSRF expired. Refresh and try again.'); return false; }
-            if (!res.ok) {
-                let msg = 'Update failed';
-                try { const data = await res.json(); if (data?.message) msg = data.message; } catch {}
-                alert(msg); return false;
-            }
-            window.location.href = "{{ route('admin.products') }}";
-            return false;
-        }
-    </script>
+   @vite('resources/js/admin-product-edit.js')
 </x-app-layout>

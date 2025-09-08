@@ -79,31 +79,14 @@
     </div>
   </div>
   <div class="h-6 md:h-8 bg-white"></div>
-  @include('user.footer')
   <script>
-    async function removeFromWishlist(id){
-      const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
-      const res = await fetch(`/api/wishlist/${id}`, {
-        method:'DELETE',
-        credentials:'same-origin',
-        headers:{ 'X-CSRF-TOKEN': token }
-      });
-      if(!res.ok){ alert('Could not remove.'); return; }
-      const data = await res.json();
-
-      const card = document.querySelector(`[data-wish-id="${id}"]`);
-      if(card) card.remove();
-
-      const badge = document.getElementById('wishlist-count');
-      if (badge){
-        const n = Number(data?.count ?? 0);
-        badge.textContent = String(n);
-        badge.classList.toggle('hidden', n <= 0);
-      }
-
-      if (document.querySelectorAll('[data-wish-id]').length === 0) {
-        location.reload();
-      }
-    }
+    window.__APP = Object.assign({}, window.__APP || {}, {
+      baseUrl: @js(url('/')),
+      csrf: @js(csrf_token()),
+    });
   </script>
+
+  @vite('resources/js/user-wishlist.js')
+  @include('user.footer')
+  
 </x-app-layout>
