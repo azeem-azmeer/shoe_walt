@@ -46,7 +46,8 @@
             @if($i === 0) x-ref="first" @endif
             aria-label="View {{ $p->product_name }}"
           >
-            <div class="relative w-full aspect-[4/3] overflow-hidden rounded-md">
+            {{-- CHANGED: aspect-[4/3] -> aspect-[5/4] --}}
+            <div class="relative w-full aspect-[5/4] overflow-hidden rounded-md">
               <img src="{{ $p->main_image_url }}" alt="{{ $p->product_name }}"
                    class="absolute inset-0 w-full h-full object-contain transition-transform duration-300 ease-out group-hover:scale-105 will-change-transform" />
             </div>

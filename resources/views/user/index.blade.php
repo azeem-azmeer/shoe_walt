@@ -38,7 +38,7 @@
     role="region"
     aria-roledescription="carousel"
     aria-label="Featured promotions"
-    class="relative w-full h-[70vh] sm:h-[72vh] md:h-[76vh] min-h-[360px] overflow-hidden outline-none"
+    class="relative w-full h-[90vh] sm:h-[92vh] md:h-[95vh] min-h-[460px] overflow-hidden outline-none"
   >
     <template x-for="(slide, i) in images" :key="i">
       <div
@@ -48,8 +48,8 @@
         :aria-hidden="index !== i"
       >
         <img :src="slide.src" :alt="slide.alt"
-             class="w-full h-full object-cover"
-             :loading="i===0 ? 'eager' : 'lazy'"/>
+            class="w-full h-full object-cover"
+            :loading="i===0 ? 'eager' : 'lazy'"/>
         <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent"></div>
       </div>
     </template>
@@ -57,12 +57,12 @@
     {{-- Slider arrows --}}
     <button @click="prev()"
       class="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full h-12 w-12 sm:h-10 sm:w-10 flex items-center justify-center shadow
-             focus:outline-none focus:ring-2 focus:ring-black"
+            focus:outline-none focus:ring-2 focus:ring-black"
       aria-label="Previous slide">‹</button>
 
     <button @click="next()"
       class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full h-12 w-12 sm:h-10 sm:w-10 flex items-center justify-center shadow
-             focus:outline-none focus:ring-2 focus:ring-black"
+            focus:outline-none focus:ring-2 focus:ring-black"
       aria-label="Next slide">›</button>
 
     {{-- Dots --}}
@@ -83,35 +83,12 @@
       <a
         :href="images[index].href"
         class="px-6 py-3 bg-white text-black font-semibold tracking-wide inline-flex items-center gap-2 shadow hover:shadow-md transition
-               focus:outline-none focus:ring-2 focus:ring-white/80"
+              focus:outline-none focus:ring-2 focus:ring-white/80"
         :aria-label="`Shop now: ${images[index].alt}`"
       >
         SHOP NOW
       </a>
     </div>
-  </section>
-
-  {{-- ======= SUMMER DROP banner (with mobile jump arrow) ======= --}}
-  <section
-    x-data="{ jump(){ document.getElementById('shop-by-category')?.scrollIntoView({behavior:'smooth'}) } }"
-    class="relative bg-black text-white"
-  >
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 text-center">
-      <span class="text-sm sm:text-base tracking-widest font-bold">SUMMER DROPS</span>
-    </div>
-
-    {{-- Mobile-only arrow cue to jump to next section --}}
-    <button
-      @click="jump"
-      class="md:hidden absolute right-3 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white/15 backdrop-blur
-             flex items-center justify-center border border-white/20 active:scale-95"
-      aria-label="Scroll to Shop by Category"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
-           class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M6 9l6 6 6-6" />
-      </svg>
-    </button>
   </section>
 
   <main id="main-content">
