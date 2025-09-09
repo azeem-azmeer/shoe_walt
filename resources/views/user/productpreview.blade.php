@@ -14,9 +14,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="app:is-auth" content="{{ auth()->check() ? '1' : '0' }}">
     <meta name="app:register-url" content="{{ route('register') }}">
-    <meta name="app:base-url" content="{{ url('') }}">  {{-- NEW --}}
+    <meta name="app:base-url" content="{{ url('') }}">
   </x-slot>
-
 
   {{-- Toast --}}
   <div x-data x-cloak x-show="$store.flash?.visible" x-transition.opacity class="fixed top-4 right-4 z-[60] max-w-sm w-[92vw] sm:w-[420px]">
@@ -158,6 +157,7 @@
                           : "pick('{$s['label']}')" }}"
                         class="h-11 border rounded flex items-center justify-center text-sm font-semibold transition
                                {{ $s['disabled'] ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'hover:border-black' }}"
+// to solve highlight glitches on some IDEs
                         :class="{ 'ring-2 ring-black' : selected === '{{ $s['label'] }}' }"
                         @if($s['disabled']) disabled aria-disabled="true" @else aria-disabled="false" @endif
                         title="{{ $s['disabled'] ? 'Sorry to inform there is no stock available in size ' . $s['label'] : 'In stock: ' . $s['qty'] }}">
@@ -232,9 +232,10 @@
                       </ol>
                     </div>
                   </div>
-                </div>
-              </div>
-          </div>
+                </div> {{-- /.modal panel --}}
+              </div>   {{-- /.positioner --}}
+            </div>     {{-- /.x-show open --}}
+          </div>       {{-- /.x-data sizeGuide --}}
 
           {{-- CTA --}}
           <div x-data="{ canAdd: {{ $inStock ? 'true' : 'false' }} }" class="mt-6 flex items-center gap-3">
@@ -306,13 +307,13 @@
 
     @if(!empty($related) && count($related))
       <section class="mt-12"
-               x-data="{
-                 step:0, atStart:true, atEnd:false,
-                 init(){ this.$nextTick(()=>{ const first=this.$refs.scroller?.querySelector('[data-card]'); const gap=24; this.step=(first?first.offsetWidth:227)+gap; this.onScroll(); }); },
-                 onScroll(){ const el=this.$refs.scroller; if(!el) return; this.atStart=el.scrollLeft<=1; this.atEnd=Math.ceil(el.scrollLeft+el.clientWidth)>=el.scrollWidth-1; },
-                 prev(){ this.$refs.scroller.scrollBy({left:-this.step,behavior:'smooth'}); },
-                 next(){ this.$refs.scroller.scrollBy({left: this.step,behavior:'smooth'}); }
-               }" x-init="init()">
+         x-data="{
+           step:0, atStart:true, atEnd:false,
+           init(){ this.$nextTick(()=>{ const first=this.$refs.scroller?.querySelector('[data-card]'); const gap=24; this.step=(first?first.offsetWidth:227)+gap; this.onScroll(); }); },
+           onScroll(){ const el=this.$refs.scroller; if(!el) return; this.atStart=el.scrollLeft<=1; this.atEnd=Math.ceil(el.scrollLeft+el.clientWidth)>=el.scrollWidth-1; },
+           prev(){ this.$refs.scroller.scrollBy({left:-this.step,behavior:'smooth'}); },
+           next(){ this.$refs.scroller.scrollBy({left: this.step,behavior:'smooth'}); }
+         }" x-init="init()">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 class="text-[40px] sm:text-[44px] md:text-[48px] font-black tracking-[0.08em] uppercase mb-6">Still Interested?</h2>
           <div class="relative">
@@ -328,8 +329,14 @@
                   <div data-card class="snap-start shrink-0 block group" style="width:6cm" x-data="{ inWish: {{ $inWish ? 'true' : 'false' }} }">
                     <a href="{{ $href }}" class="block relative {{ $rid ? '' : 'pointer-events-none opacity-60' }}"
                        @if(!$rid) aria-disabled="true" tabindex="-1" @endif aria-label="{{ $p['name'] ?? 'Product' }}">
-                      <div class="relative" style="width:6cm;height:7cm;background:#e9eef1;">
-                        <img src="{{ $p['img'] ?? asset('storage/products/placeholder.png') }}" alt="{{ $p['name'] ?? 'Product' }}" class="absolute inset-0 w-full h-full object-contain" loading="lazy">
+
+                      {{-- IMAGE: no frame, fill the box --}}
+                      <div class="relative overflow-hidden" style="width:6cm;height:7cm;">
+                        <img
+                          src="{{ $p['img'] ?? asset('storage/products/placeholder.png') }}"
+                          alt="{{ $p['name'] ?? 'Product' }}"
+                          class="absolute inset-0 w-full h-full object-cover"
+                          loading="lazy" decoding="async">
                         @if($rid)
                           <button type="button"
                                   class="absolute top-3 right-3 h-7 w-7 rounded-full bg-white/0"
@@ -339,6 +346,7 @@
                           </button>
                         @endif
                       </div>
+
                       <div class="pt-3">
                         <div class="font-extrabold text-[18px]">${{ number_format($p['price'] ?? 0, 0) }}</div>
                         <div class="mt-1 font-semibold text-[16px] leading-snug line-clamp-1">{{ $p['name'] ?? 'Product' }}</div>
@@ -357,7 +365,7 @@
       </section>
     @endif
 
-    {{-- MINI CART POPUP (wired to $store.miniCart) --}}
+    {{-- MINI CART POPUP --}}
     <div x-data="{}" x-show="$store.miniCart.open" x-cloak class="fixed inset-0 z-50">
       <div class="absolute inset-0 bg-black/40" @click="$store.miniCart.open=false"></div>
       <div class="absolute right-4 top-16 w-[360px] bg-white rounded-xl shadow-xl ring-1 ring-black/10">
@@ -399,16 +407,15 @@
   <div class="h-6 md:h-8 bg-white"></div>
   @include('user.footer')
 
-  {{-- put this right before @vite(...) --}}
+  {{-- Global config for JS --}}
   <script>
     window.__APP = {
       isAuth: {{ auth()->check() ? 'true' : 'false' }},
       registerUrl: @js(route('register')),
-      baseUrl: @js(url('/')),      // respects sub-folder e.g. /SSP2Assighment/shoe_walt/public
+      baseUrl: @js(url('/')),
       csrf: @js(csrf_token()),
     };
   </script>
 
   @vite('resources/js/user-productpreview.js')
-
 </x-app-layout>

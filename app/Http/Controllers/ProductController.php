@@ -373,10 +373,47 @@ public function preview(\App\Models\Product $product)
         'related'  => $related,
     ]);
 }
+public function men(Request $req)
+{
+    $per   = (int) $req->integer('per_page', 12);
+    $size  = trim((string) $req->query('size', ''));
+    $sort  = (string) $req->query('sort', '');
+
+    $q = Product::query()
+        ->select('product_id','product_name','price','category','status',
+                 'main_image','view_image2','view_image3','view_image4')
+        ->where('status', 'Active')
+        ->where(function ($q) {
+            $q->whereRaw('LOWER(category) = ?', ['men'])
+              ->orWhereRaw('LOWER(category) = ?', ['mens'])
+              ->orWhere('category', 'Men');
+        });
+
+    // ✅ Size filter (through product_sizes join)
+    if ($size !== '') {
+        $q->whereIn('product_id', function ($sub) use ($size) {
+            $sub->select('product_id')
+                ->from('product_sizes')
+                ->where('size', $size)
+                ->where('qty', '>', 0);
+        });
+    }
+
+    // ✅ Sorting
+   // ✅ Sorting
+    match ($sort) {
+        'price_asc'  => $q->orderBy('price', 'asc'),
+        'price_desc' => $q->orderBy('price', 'desc'),
+        default      => $q->orderByDesc('product_id'),
+    };
 
 
+    $products = $q->paginate($per)->withQueryString();
 
-    
+    return view('user.mens', compact('products'));
+}
+
+
 }
 
 

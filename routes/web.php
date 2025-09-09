@@ -11,7 +11,7 @@ Route::view('/index', 'user.index')->name('user.index');
 Route::redirect('/', '/index');
 
 Route::get('/products/{product}', [ProductController::class, 'preview'])->name('user.product.preview');
-Route::view('/mens',   'user.mens')->name('user.mens');
+Route::get('/men', [ProductController::class, 'men'])->name('user.mens');
 Route::view('/womans', 'user.womans')->name('user.womans');
 Route::view('/kids',   'user.kids')->name('user.kids');
 
@@ -26,6 +26,7 @@ Route::middleware(['auth'])->group(function () {
 
 // Friendly alias: /bag -> /cart
 Route::get('/bag', fn () => redirect()->route('user.cart'))->name('user.viewbag');
+
 
 // --- Dashboard redirect ---
 Route::middleware(['auth', 'verified'])->get('/dashboard', function () {
