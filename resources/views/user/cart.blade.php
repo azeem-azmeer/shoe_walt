@@ -9,7 +9,6 @@
       {{-- Greeting --}}
       <div class="rounded-xl px-6 py-4 mb-6 bg-white border shadow-sm">
         <div class="flex items-center gap-3">
-          
           <p class="font-semibold tracking-wide text-gray-800">
             HI, {{ auth()->check() ? Str::of(auth()->user()->name)->upper()->finish('!') : 'THERE!' }}
           </p>
@@ -35,16 +34,21 @@
           <div id="cartItems" class="mt-5 space-y-4">
             @forelse($items as $it)
               <div class="border rounded-xl overflow-hidden bg-white shadow-sm hover:shadow transition">
-                <div class="grid grid-cols-12">
-                  <div class="col-span-12 sm:col-span-3 bg-gray-100/60 p-4 flex items-center justify-center">
-                    <img
-                      src="{{ $it['img'] ?? asset('storage/products/placeholder.png') }}"
-                      alt=""
-                      class="max-h-36 object-contain rounded-md ring-1 ring-black/5 bg-white p-2"
-                    >
+                <div class="sm:grid sm:grid-cols-12">
+                  {{-- IMAGE (mobile: reduced width/height only) --}}
+                  <div class="sm:col-span-3">
+                    <div class="mx-auto w-40 h-28 sm:w-full sm:h-auto sm:aspect-[4/3] overflow-hidden">
+                      <img
+                        src="{{ $it['img'] ?? asset('storage/products/placeholder.png') }}"
+                        alt="{{ $it['name'] ?? 'Product image' }}"
+                        class="w-full h-full object-cover object-center block"
+                        loading="lazy"
+                        onerror="this.onerror=null;this.src='{{ asset('storage/products/placeholder.png') }}'">
+                    </div>
                   </div>
 
-                  <div class="col-span-12 sm:col-span-9 p-4 sm:p-5">
+                  {{-- DETAILS --}}
+                  <div class="p-3 sm:p-5 sm:col-span-9">
                     <div class="flex items-start justify-between gap-4">
                       <div>
                         <div class="font-semibold text-lg leading-6 text-gray-900">{{ $it['name'] }}</div>
@@ -66,7 +70,7 @@
 
                         <button
                           onclick="removeCartItem({{ $it['id'] }})"
-                          class="mt-3 inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-600 hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition"
+                          class="mt-3 inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full border border-gray-200 text-gray-600 hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition"
                           title="Remove item" aria-label="Remove"
                         >
                           ✕
@@ -88,7 +92,6 @@
         <aside class="lg:col-span-4">
           <div id="orderSummary" class="bg-white border rounded-2xl p-5 shadow-sm sticky top-8">
             <div class="flex items-center gap-2 mb-3">
-              
               <h2 class="text-xl font-black tracking-wide text-gray-900">ORDER SUMMARY</h2>
             </div>
 
@@ -130,7 +133,6 @@
               CHECKOUT
             </a>
 
-            {{-- Payment methods image --}}
             <div class="mt-5 rounded-xl bg-gray-50 border border-gray-200 p-3">
               <img
                 src="{{ asset('storage/products/payemt.png') }}"

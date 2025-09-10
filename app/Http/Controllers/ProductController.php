@@ -412,6 +412,89 @@ public function men(Request $req)
 
     return view('user.mens', compact('products'));
 }
+// In your controller (same controller that has men())
+public function womans(Request $req)
+{
+    $per  = (int) $req->integer('per_page', 12);
+    $size = trim((string) $req->query('size', ''));
+    $sort = (string) $req->query('sort', '');
+
+    $q = Product::query()
+        ->select('product_id','product_name','price','category','status',
+                 'main_image','view_image2','view_image3','view_image4')
+        ->where('status', 'Active')
+        ->where(function ($q) {
+            // accept multiple spellings/cases
+            $q->whereRaw('LOWER(category) = ?', ['women'])
+              ->orWhereRaw('LOWER(category) = ?', ['womens'])
+              ->orWhereRaw('LOWER(category) = ?', ['woman'])
+              ->orWhere('category', 'Women');
+        });
+
+    // Size filter (via product_sizes join)
+    if ($size !== '') {
+        $q->whereIn('product_id', function ($sub) use ($size) {
+            $sub->select('product_id')
+                ->from('product_sizes')
+                ->where('size', $size)
+                ->where('qty', '>', 0);
+        });
+    }
+
+    // Sorting
+    match ($sort) {
+        'price_asc'  => $q->orderBy('price', 'asc'),
+        'price_desc' => $q->orderBy('price', 'desc'),
+        default      => $q->orderByDesc('product_id'),
+    };
+
+    $products = $q->paginate($per)->withQueryString();
+
+    return view('user.womans', compact('products'));
+}
+// Same controller as men()/womans()
+public function kids(Request $req)
+{
+    $per  = (int) $req->integer('per_page', 12);
+    $size = trim((string) $req->query('size', ''));
+    $sort = (string) $req->query('sort', '');
+
+    $q = Product::query()
+        ->select('product_id','product_name','price','category','status',
+                 'main_image','view_image2','view_image3','view_image4')
+        ->where('status', 'Active')
+        ->where(function ($q) {
+            // accept common variants
+            $q->whereRaw('LOWER(category) = ?', ['kids'])
+              ->orWhereRaw('LOWER(category) = ?', ['kid'])
+              ->orWhereRaw('LOWER(category) = ?', ['children'])
+              ->orWhereRaw('LOWER(category) = ?', ['child'])
+              ->orWhereRaw('LOWER(category) = ?', ['boys'])
+              ->orWhereRaw('LOWER(category) = ?', ['girls'])
+              ->orWhere('category', 'Kids');
+        });
+
+    if ($size !== '') {
+        $q->whereIn('product_id', function ($sub) use ($size) {
+            $sub->select('product_id')
+                ->from('product_sizes')
+                ->where('size', $size)
+                ->where('qty', '>', 0);
+        });
+    }
+
+    match ($sort) {
+        'price_asc'  => $q->orderBy('price', 'asc'),
+        'price_desc' => $q->orderBy('price', 'desc'),
+        default      => $q->orderByDesc('product_id'),
+    };
+
+    $products = $q->paginate($per)->withQueryString();
+
+    return view('user.kids', compact('products'));
+}
+
+
 
 
 }

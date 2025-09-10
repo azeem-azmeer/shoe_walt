@@ -12,8 +12,9 @@ Route::redirect('/', '/index');
 
 Route::get('/products/{product}', [ProductController::class, 'preview'])->name('user.product.preview');
 Route::get('/men', [ProductController::class, 'men'])->name('user.mens');
-Route::view('/womans', 'user.womans')->name('user.womans');
-Route::view('/kids',   'user.kids')->name('user.kids');
+Route::get('/women', [ProductController::class, 'womans'])->name('user.womans');
+Route::get('/kids', [ProductController::class, 'kids'])->name('user.kids');
+
 
 // --- Customer area (requires auth) ---
 Route::middleware(['auth'])->group(function () {

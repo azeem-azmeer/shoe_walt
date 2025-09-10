@@ -45,14 +45,7 @@
       <div class="flex items-center gap-4">
         @if(!$isAdmin)
           {{-- Search pill (hidden for admin) --}}
-          <div class="relative hidden sm:block">
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m21 21-4.3-4.3M17 10a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z"/>
-            </svg>
-            <input type="search" placeholder="Search"
-                   class="pl-10 pr-4 py-2 w-56 md:w-80 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300" />
-          </div>
-
+                <livewire:user.search />
           {{-- Cart --}}
           @auth
             <a href="{{ route('user.cart') }}"
