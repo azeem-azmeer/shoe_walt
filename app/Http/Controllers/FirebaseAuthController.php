@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Kreait\Firebase\Factory;
@@ -20,52 +19,61 @@ class FirebaseAuthController extends Controller
             'as'      => 'nullable|in:session,token',
         ]);
 
-        // 0) Make sure credentials file exists
-        $credsPath = config('services.firebase.credentials'); 
-        if (!$credsPath || !file_exists($credsPath)) {
-            Log::error('Firebase creds missing', ['path' => $credsPath]);
-            return response()->json(['message' => 'Server misconfigured: firebase-admin.json not found'], 500);
+        // Resolve credentials path from services.php, firebase.php, or .env
+        $credsPath = config('services.firebase.credentials')
+            ?? config('firebase.projects.app.credentials.file')
+            ?? env('FIREBASE_CREDENTIALS');
+
+        // Normalize Windows paths (forward slashes are fine)
+        if (is_string($credsPath)) {
+            $credsPath = str_replace('\\', '/', $credsPath);
         }
 
-        // Load project_id from service account file
-        $projectId = json_decode(file_get_contents($credsPath), true)['project_id'] ?? null;
+        if (!$credsPath || !file_exists($credsPath)) {
+            Log::error('Firebase creds missing', ['path' => $credsPath]);
+            return response()->json([
+                'message' => 'Server misconfigured: firebase-admin.json not found',
+            ], 500);
+        }
 
-        // 1) Build Admin client from that file
+        // Read project_id from service account to compare with token.iss
+        $sa = json_decode(file_get_contents($credsPath), true) ?: [];
+        $projectId = $sa['project_id'] ?? null;
+        Log::info('Firebase service account', ['project_id' => $projectId, 'path' => $credsPath]);
+
+        // Build Admin client
         $firebaseAuth = (new Factory())
             ->withServiceAccount($credsPath)
             ->createAuth();
 
-        // 2) Verify ID token & show precise error if it fails
+        // Verify the ID token
         try {
             $verified = $firebaseAuth->verifyIdToken($data['idToken']);
         } catch (FailedToVerifyToken $e) {
-            Log::error('Failed to verify Firebase ID token', ['err' => $e->getMessage()]);
-            if (!App::isProduction()) {
-                return response()->json([
-                    'message' => 'Invalid Firebase token',
-                    'reason'  => $e->getMessage(),
-                ], 401);
-            }
-            return response()->json(['message' => 'Invalid Firebase token'], 401);
+            Log::error('Failed to verify Firebase ID token', ['reason' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Invalid Firebase token',
+                'reason'  => $e->getMessage(),   // keep during debugging
+            ], 401);
         } catch (Throwable $e) {
             Log::error('Token verification error', ['err' => $e->getMessage()]);
             return response()->json(['message' => 'Token verification error'], 500);
         }
 
-        // 3) Pull claims
+        // Pull claims
         $claims = $verified->claims();
         $uid    = $claims->get('sub');
         $email  = $claims->get('email');
-        $name   = $claims->get('name') ?? ($email ? strtok($email, '@') : 'User '.$uid);
+        $name   = $claims->get('name') ?? ($email ? strtok($email, '@') : ('User '.$uid));
+        $iss    = (string) $claims->get('iss', '');
 
-        // 4) Make sure the token belongs to your project
-        $iss = $claims->get('iss'); 
-        if ($projectId && is_string($iss) && !str_contains($iss, "securetoken.google.com/{$projectId}")) {
-            Log::error('Token iss not for this project', ['iss' => $iss, 'expected' => $projectId]);
+        // Ensure token belongs to the same project as the service account
+        if ($projectId && !str_contains($iss, "securetoken.google.com/{$projectId}")) {
+            Log::error('Issuer mismatch', ['iss' => $iss, 'expected' => $projectId]);
             return response()->json(['message' => 'Token for wrong project (iss mismatch)'], 401);
         }
 
-        // 5) Find or create local user
+        // Find or create local user
         $user = User::query()
             ->when($email, fn($q) => $q->where('email', $email))
             ->orWhere('firebase_uid', $uid)
@@ -74,21 +82,21 @@ class FirebaseAuthController extends Controller
         if (!$user) {
             $user = User::create([
                 'name'         => $name,
-                'email'        => $email,
-                'password'     => bcrypt(str()->random(40)),
+                'email'        => $email,                       // may be null if Google didn’t return it
+                'password'     => bcrypt(str()->random(40)),    // placeholder
                 'firebase_uid' => $uid,
             ]);
         } elseif (!$user->firebase_uid) {
             $user->forceFill(['firebase_uid' => $uid])->save();
         }
 
-        // 6) Session login (for Jetstream)
+        // Session login (Jetstream/Sanctum)
         if (($data['as'] ?? 'session') === 'session') {
             Auth::login($user, true);
-            return response()->noContent(); // 204 → frontend redirects
+            return response()->noContent(); // 204
         }
 
-        // Or: issue a token (API use)
+        // Personal access token (API use)
         $token = $user->createToken('firebase-login')->plainTextToken;
         return response()->json(['token' => $token]);
     }

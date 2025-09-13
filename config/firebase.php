@@ -10,6 +10,10 @@ return [
      */
 
     'default' => env('FIREBASE_PROJECT', 'app'),
+    'firebase' => [
+        // absolute path is safest on Windows/XAMPP
+        'credentials' => env('FIREBASE_CREDENTIALS', base_path('firebase-admin.json')),
+    ],
 
     /*
      * ------------------------------------------------------------------------

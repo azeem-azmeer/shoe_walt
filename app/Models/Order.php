@@ -15,11 +15,17 @@ class Order extends Model
         'status',
         'total',
     ];
+    protected $casts = [
+    'total'      => 'decimal:2',
+    'order_date' => 'datetime',
+];
+
 
     public function items()
     {
         return $this->hasMany(OrderItem::class);
     }
+    public function user()  { return $this->belongsTo(\App\Models\User::class); }
 
     public function customer()
     {

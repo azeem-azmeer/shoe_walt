@@ -62,20 +62,21 @@ Route::middleware(['auth','verified'])->get('/dashboard', function () {
 /*=====================
 =      Admin UI       =
 =====================*/
+// routes/web.php
 Route::middleware(['auth','verified','admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
         Route::view('/dashboard', 'admin.dashboard')->name('dashboard');
 
-        // Products CRUD pages
         Route::get('/products',           [ProductController::class, 'index'])->name('products');
         Route::view('/products/create',   'admin.product-create')->name('products.create');
         Route::get('/products/{id}/edit', [ProductController::class, 'edit'])
              ->whereNumber('id')->name('products.edit');
 
-        // Other admin pages
-        Route::view('/orders',    'admin.order')->name('orders');
+        // ✅ Admin Orders page (view only; Livewire fills data)
+        Route::view('/orders', 'admin.order')->name('orders');
+
         Route::view('/customers', 'admin.customer')->name('customers');
         Route::view('/reorders',  'admin.reorder')->name('reorders');
 
