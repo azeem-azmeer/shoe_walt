@@ -71,6 +71,11 @@ public function cartItems()
 {
     return $this->hasMany(\App\Models\CustomerCart::class, 'user_id');
 }
+public function orders()
+{
+    return $this->hasMany(\App\Models\Order::class);
+}
+
 
    
 

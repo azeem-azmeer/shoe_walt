@@ -112,7 +112,7 @@
               <div class="px-3 py-2 text-xs text-gray-400">Manage Account</div>
 
               <a href="{{ route('profile.show') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-50">Profile</a>
-
+              <a href="{{ route('user.orders') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-50">My Orders</a>
               @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
                 <a href="{{ route('api-tokens.index') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-50">API Tokens</a>
               @endif

@@ -8,7 +8,7 @@ use App\Http\Controllers\{
     CartController
 };
 use App\Http\Controllers\CheckoutController;
-
+use App\Http\Controllers\OrderController;
 
 /*====================
 =   Auth (web)       =
@@ -44,7 +44,15 @@ Route::middleware(['auth'])->group(function () {
     // Order details page (after placing order)
     Route::get('/orders/{order}',  [CheckoutController::class, 'show'])->name('user.orders.show')
          ->whereNumber('order');
+  
 });
+
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/orders', [OrderController::class, 'index'])->name('user.orders');
+    Route::get('/orders/{order}', [OrderController::class, 'show'])->name('user.orders.show');
+});
+
 
 /*=========================
 =  Dashboard redirect     =
