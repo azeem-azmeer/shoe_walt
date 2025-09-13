@@ -5,10 +5,10 @@ use App\Http\Controllers\{
     FirebaseAuthController,
     ProductController,
     WishlistController,
-    CartController
+    CartController,
+    CheckoutController,
+    OrderController
 };
-use App\Http\Controllers\CheckoutController;
-use App\Http\Controllers\OrderController;
 
 /*====================
 =   Auth (web)       =
@@ -38,21 +38,17 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/bag', fn () => redirect()->route('user.cart'))->name('user.viewbag'); // alias
 
     // Checkout (page + submit)
-    Route::get ('/checkout',       [CheckoutController::class, 'index'])->name('user.checkout');
-    Route::post('/checkout',       [CheckoutController::class, 'store'])->name('user.checkout.store');
+    Route::get ('/checkout', [CheckoutController::class, 'index'])->name('user.checkout');
+    Route::post('/checkout', [CheckoutController::class, 'store'])->name('user.checkout.store');
 
-    // Order details page (after placing order)
-    Route::get('/orders/{order}',  [CheckoutController::class, 'show'])->name('user.orders.show')
-         ->whereNumber('order');
-  
-});
-
-
-Route::middleware(['auth'])->group(function () {
+    // Orders
     Route::get('/orders', [OrderController::class, 'index'])->name('user.orders');
-    Route::get('/orders/{order}', [OrderController::class, 'show'])->name('user.orders.show');
-});
 
+    // ✅ Only CheckoutController handles single order detail
+    Route::get('/orders/{order}', [CheckoutController::class, 'show'])
+        ->name('user.orders.show')
+        ->whereNumber('order');
+});
 
 /*=========================
 =  Dashboard redirect     =
