@@ -1,8 +1,8 @@
 {{-- resources/views/components/nav.blade.php --}}
 @php
   $isAdmin       = auth()->check() && (auth()->user()->role ?? null) === 'admin';
-  $wishlistCount = $wishlistCount ?? 0;   // provide from server if you can; else 0
-  $cartCount     = $cartCount ?? 0;       // provide from server if you can; else 0
+  $wishlistCount = $wishlistCount ?? 0;
+  $cartCount     = $cartCount ?? 0;
 @endphp
 
 <nav x-data="{ open: false, acctOpen: false }" class="bg-white">
@@ -26,14 +26,13 @@
       {{-- Center: Links --}}
       <ul class="hidden md:flex items-center gap-10 text-[17px]">
         @if($isAdmin)
-          {{-- ADMIN LINKS --}}
           <li><a href="{{ route('admin.dashboard') }}" class="hover:opacity-80">Dashboard</a></li>
           <li><a href="{{ route('admin.products') }}" class="hover:opacity-80">Products</a></li>
           <li><a href="{{ route('admin.reorders') }}" class="hover:opacity-80">Stock Reorders</a></li>
           <li><a href="{{ route('admin.customers') }}" class="hover:opacity-80">Customers</a></li>
           <li><a href="{{ route('admin.orders') }}" class="hover:opacity-80">Customer Orders</a></li>
+           <li><a href="{{ route('admin.reviews') }}" class="hover:opacity-80">Customer Reviews</a></li>
         @else
-          {{-- PUBLIC LINKS --}}
           <li><a href="{{ route('user.index') }}" class="hover:opacity-80">Home</a></li>
           <li><a href="{{ route('user.mens') }}" class="hover:opacity-80">Men</a></li>
           <li><a href="{{ route('user.womans') }}" class="hover:opacity-80">Women</a></li>
@@ -45,7 +44,8 @@
       <div class="flex items-center gap-4">
         @if(!$isAdmin)
           {{-- Search pill (hidden for admin) --}}
-                <livewire:user.search />
+          <livewire:user.search />
+
           {{-- Cart --}}
           @auth
             <a href="{{ route('user.cart') }}"
@@ -112,28 +112,30 @@
               <div class="px-3 py-2 text-xs text-gray-400">Manage Account</div>
 
               <a href="{{ route('profile.show') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-50">Profile</a>
-               @unless($isAdmin)
+              @unless($isAdmin)
                 <a href="{{ route('user.orders') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-50">My Orders</a>
               @endunless
               @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
                 <a href="{{ route('api-tokens.index') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-50">API Tokens</a>
               @endif
-
               @if ($isAdmin)
                 <a href="{{ route('admin.dashboard') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-50">Admin Dashboard</a>
               @endif
 
               <div class="my-2 border-t"></div>
 
-              <form method="POST" action="{{ route('logout') }}" id="logout-form">@csrf
+              {{-- Logout (single submit, waits for firebaseLogout() if present) --}}
+              <form method="POST" action="{{ route('logout') }}" x-data x-ref="logoutForm">
+                @csrf
                 <button
+                  type="submit"
                   class="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50"
-                  onclick="event.preventDefault();
-                    if (typeof firebaseLogout === 'function') {
-                      firebaseLogout().then(() => document.getElementById('logout-form').submit());
-                    } else {
-                      document.getElementById('logout-form').submit();
-                    }"
+                  @click.prevent="
+                    (async () => {
+                      try { if (window.firebaseLogout) { await firebaseLogout() } }
+                      finally { $refs.logoutForm.submit() }
+                    })()
+                  "
                 >
                   Log Out
                 </button>
@@ -168,14 +170,13 @@
     <div x-show="open" x-cloak class="md:hidden pb-4">
       <ul class="flex flex-col gap-2 text-base pt-2">
         @if($isAdmin)
-          {{-- Admin mobile links --}}
           <li><a href="{{ route('admin.dashboard') }}" class="px-2 py-1 rounded hover:bg-gray-50">Dashboard</a></li>
           <li><a href="{{ route('admin.products') }}" class="px-2 py-1 rounded hover:bg-gray-50">Products</a></li>
           <li><a href="{{ route('admin.reorders') }}" class="px-2 py-1 rounded hover:bg-gray-50">Stock Reorders</a></li>
           <li><a href="{{ route('admin.customers') }}" class="px-2 py-1 rounded hover:bg-gray-50">Customers</a></li>
           <li><a href="{{ route('admin.orders') }}" class="px-2 py-1 rounded hover:bg-gray-50">Customer Orders</a></li>
+          <li><a href="{{ route('admin.reviews') }}" class="px-2 py-1 rounded hover:bg-gray-50">Customer Reviews</a></li>
         @else
-          {{-- Public mobile links --}}
           <li><a href="{{ route('user.index') }}" class="px-2 py-1 rounded hover:bg-gray-50">Home</a></li>
           <li><a href="{{ route('user.mens') }}" class="px-2 py-1 rounded hover:bg-gray-50">Men</a></li>
           <li><a href="{{ route('user.womans') }}" class="px-2 py-1 rounded hover:bg-gray-50">Women</a></li>
@@ -188,14 +189,18 @@
             <li><a href="{{ route('dashboard') }}" class="px-2 py-1 rounded hover:bg-gray-50">Dashboard</a></li>
             <li><a href="{{ route('profile.show') }}" class="px-2 py-1 rounded hover:bg-gray-50">Profile</a></li>
             <li>
-              <form method="POST" action="{{ route('logout') }}" class="px-2 py-1">@csrf
-                <button class="w-full text-left rounded hover:bg-gray-50"
-                        onclick="event.preventDefault();
-                          if (typeof firebaseLogout === 'function') {
-                            firebaseLogout().then(() => this.closest('form').submit());
-                          } else {
-                            this.closest('form').submit();
-                          }">
+              <form method="POST" action="{{ route('logout') }}" x-data x-ref="logoutForm" class="px-2 py-1">
+                @csrf
+                <button
+                  type="submit"
+                  class="w-full text-left rounded hover:bg-gray-50"
+                  @click.prevent="
+                    (async () => {
+                      try { if (window.firebaseLogout) { await firebaseLogout() } }
+                      finally { $refs.logoutForm.submit() }
+                    })()
+                  "
+                >
                   Log Out
                 </button>
               </form>
@@ -213,37 +218,33 @@
 {{-- Live badge refresh for authenticated users --}}
 @auth
 <script>
-  (function(){
-    async function refreshBadges(){
-      try{
-        const wc = document.getElementById('wishlist-count');
-        const cc = document.getElementById('cart-count');
-
-        // fetch wishlist count
-        const wRes = await fetch('/api/wishlist/count', {credentials:'same-origin'});
-        if (wRes.ok && wc){
-          const w = await wRes.json();
-          const wn = Number(w?.count ?? 0);
-          wc.textContent = String(wn);
-          wc.classList.toggle('hidden', wn <= 0);
-        }
-
-        // fetch mini cart (expects {count, items:[]})
-        const cRes = await fetch('/api/cart/mini', {credentials:'same-origin'});
-        if (cRes.ok && cc){
-          const c = await cRes.json();
-          const cn = Number(c?.count ?? 0);
-          cc.textContent = String(cn);
-          cc.classList.toggle('hidden', cn <= 0);
-        }
-      } catch(e){ /* ignore */ }
+    (function () {
+    function reloadOnce() {
+      if (!window.__silenced419) {
+        window.__silenced419 = true;
+        location.reload();
+      }
     }
 
-    // initial load
-    document.addEventListener('DOMContentLoaded', refreshBadges);
+    // Livewire v3
+    document.addEventListener('livewire:load', () => {
+      try {
+        if (window.Livewire && typeof Livewire.onError === 'function') {
+          Livewire.onError((status /*, error */) => {
+            if (Number(status) === 419) { reloadOnce(); return true; } // swallow
+          });
+        }
+        // Livewire v2 fallback
+        if (window.livewire && typeof window.livewire.onError === 'function') {
+          window.livewire.onError((message, status) => {
+            if (Number(status) === 419) { reloadOnce(); return true; }
+          });
+        }
+      } catch (_) {}
+    }
 
-    // Optional: listen for custom events if you dispatch them after add/remove
-    document.addEventListener('cart:updated',   refreshBadges);
+    document.addEventListener('DOMContentLoaded', refreshBadges);
+    document.addEventListener('cart:updated', refreshBadges);
     document.addEventListener('wishlist:updated', refreshBadges);
   })();
 </script>

@@ -1,44 +1,52 @@
 {{-- resources/views/emails/order-receipt.blade.php --}}
+@php
+  use Carbon\Carbon;
+
+  $tz        = config('app.timezone');
+  $created   = $order->created_at ?? now();
+  $placedAt  = Carbon::parse($created)->timezone($tz)->format('M j, Y g:ia');
+  $eta       = Carbon::parse($created)->timezone($tz)->addDays(15)->format('M j, Y');
+
+  $items     = $order->items ?? collect();
+  $currency  = fn($n) => '$'.number_format((float)$n, 2);
+@endphp
 
 <x-mail::message>
-{{-- Header with Logo --}}
+# Order Confirmation
 
-# 👟 Order Receipt – Shoe Walt
+**Order #{{ $order->id }}**  
+Placed on **{{ $placedAt }}**
 
-Hi **{{ $order->user->name ?? 'Customer' }}**,  
+<x-mail::panel>
+**Status:** {{ ucfirst($order->status) }}  
+**Estimated Delivery:** **{{ $eta }}**  
+We’ll email you tracking details as soon as your package ships.
+</x-mail::panel>
 
-Thank you for shopping with **Shoe Walt**! 🎉  
-Your order **#{{ $order->id }}** has been placed successfully.
-
----
-
-## 🛍️ Order Summary
-@foreach($order->items as $item)
-- **{{ $item->product->product_name ?? 'Product' }}**  
-  Size: {{ $item->size }} | Qty: {{ $item->quantity }}  
-  Price: **${{ number_format($item->unit_price, 2) }}**
+## Order Summary
+@component('mail::table')
+| Item | Size | Qty | Unit Price | Line Total |
+|:-----|:----:|:---:|-----------:|-----------:|
+@foreach($items as $item)
+| {{ $item->product->product_name ?? 'Product' }} | {{ $item->size }} | {{ $item->quantity }} | {{ $currency($item->unit_price) }} | {{ $currency($item->unit_price * $item->quantity) }} |
 @endforeach
-
----
-
-**Total:** **${{ number_format($order->total, 2) }}**  
-**Status:** {{ ucfirst($order->status) }}
-
----
-
-## 📦 Shipping Address
-{{ $order->street_address }}
-
----
-
-@component('mail::button', ['url' => route('user.orders.show', $order->id)])
-🔎 View Your Order
 @endcomponent
 
-Thanks for choosing **Shoe Walt** ❤️  
-We hope to see you again soon!
+@php
+  // If you later add tax/shipping, show them here.
+@endphp
 
-<br>
-— The Shoe Walt Team
+**Order Total:** {{ $currency($order->total) }}
 
+## Shipping Address
+{{ $order->street_address }}
+
+@component('mail::button', ['url' => route('user.orders.show', $order->id)])
+View Your Order
+@endcomponent
+
+If you have any questions, just reply to this email and our team will be happy to help.
+
+Regards,  
+**Shoe Walt**
 </x-mail::message>
