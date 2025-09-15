@@ -94,6 +94,6 @@
 
   @include('user.footer')
 
-  {{-- Load review JS via Vite --}}
   @vite('resources/js/user-review.js')
 </x-app-layout>
+]

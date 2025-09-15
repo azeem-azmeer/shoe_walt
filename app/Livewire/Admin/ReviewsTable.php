@@ -60,8 +60,16 @@ class ReviewsTable extends Component
     public function delete(string $id): void
     {
         try {
-            // Mongo friendly: try find(), then fallback to ObjectId lookup
-            $rev = Review::find($id) ?: Review::where('_id', new ObjectId($id))->first();
+            // Try find by plain id; fallback to Mongo ObjectId
+            $rev = Review::find($id);
+            if (!$rev) {
+                try {
+                    $rev = Review::where('_id', new ObjectId($id))->first();
+                } catch (\Throwable $e) {
+                    // ignore invalid ObjectId
+                }
+            }
+
             if ($rev) {
                 $rev->delete();
                 $this->dispatch('flash', message: 'Review deleted.', type: 'success');
@@ -76,7 +84,8 @@ class ReviewsTable extends Component
         $this->resetPage();
     }
 
-    public function getRowsProperty()
+    /** Base query with all filters applied (reused for rows + stats) */
+    protected function baseQuery()
     {
         $q = Review::query();
 
@@ -85,22 +94,49 @@ class ReviewsTable extends Component
         }
         if ($this->rating)  $q->where('rating', (int) $this->rating);
         if ($this->orderId) $q->where('order_id', (int) $this->orderId);
-        if ($this->userId)  $q->where('user_id', (int) $this->userId);
+        if ($this->userId)  $q->where('user_id',  (int) $this->userId);
 
         if ($this->from) $q->where('created_at', '>=', Carbon::parse($this->from));
         if ($this->to)   $q->where('created_at', '<=', Carbon::parse($this->to)->endOfDay());
 
+        return $q;
+    }
+
+    public function getRowsProperty()
+    {
         $sortable = ['created_at','updated_at','rating','order_id','user_id'];
         $sort = in_array($this->sort, $sortable) ? $this->sort : 'created_at';
         $dir  = $this->dir === 'asc' ? 'asc' : 'desc';
 
-        return $q->orderBy($sort, $dir)->paginate(12);
+        return $this->baseQuery()
+            ->orderBy($sort, $dir)
+            ->paginate(12);
+    }
+
+    /** Stats for header: total, avg, and star breakdown */
+    public function getStatsProperty(): array
+    {
+        $q = $this->baseQuery();
+        $total = (clone $q)->count();
+        $avg   = $total ? round((clone $q)->avg('rating'), 2) : 0.0;
+
+        $byStar = [];
+        for ($s = 1; $s <= 5; $s++) {
+            $byStar[$s] = (clone $q)->where('rating', $s)->count();
+        }
+
+        return [
+            'total'   => $total,
+            'avg'     => $avg,
+            'by_star' => $byStar,
+        ];
     }
 
     public function render()
     {
         return view('livewire.admin.reviews-table', [
-            'rows' => $this->rows,
+            'rows'  => $this->rows,
+            'stats' => $this->stats,
         ]);
     }
 }

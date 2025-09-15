@@ -1,7 +1,8 @@
 <x-guest-layout>
     <x-authentication-card>
         <x-slot name="logo">
-            <x-authentication-card-logo />
+           {{-- Use your stored logo (only change) --}}
+            <img src="{{ asset('storage/products/logo.png') }}" alt="Shoe Walt" class="h-12 w-auto mx-auto">
         </x-slot>
 
         <x-validation-errors class="mb-4" />

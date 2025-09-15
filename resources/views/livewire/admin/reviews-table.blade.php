@@ -1,5 +1,60 @@
 <div x-data="{ toast: null }" x-on:flash.window="toast = $event.detail; setTimeout(()=> toast=null, 2500)">
-  {{-- Filters --}}
+  {{-- ===== Top stats card ===== --}}
+  <div class="rounded-2xl border bg-gradient-to-r from-indigo-50 via-sky-50 to-blue-50 p-5 mb-5">
+    <div class="flex flex-wrap items-center gap-6">
+      {{-- Title + total --}}
+      <div class="flex-1 min-w-[220px]">
+        <h2 class="text-xl md:text-2xl font-black tracking-tight flex items-center gap-2">
+          Customer Reviews
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-black text-white">
+            {{ number_format($stats['total'] ?? 0) }}
+          </span>
+        </h2>
+        <p class="text-sm text-gray-600 mt-1">
+          Manage and moderate what customers say about their orders.
+        </p>
+      </div>
+
+      {{-- Average rating --}}
+      @php
+        $avg = round(($stats['avg'] ?? 0), 1);
+        $full = (int) floor($avg);
+        $empty = 5 - $full;
+      @endphp
+      <div class="flex items-center gap-3 min-w-[220px]">
+        <div class="text-4xl font-black">{{ $avg }}</div>
+        <div class="text-2xl text-yellow-500 leading-none">
+          {{ str_repeat('★', $full) }}<span class="text-gray-300">{{ str_repeat('☆', $empty) }}</span>
+        </div>
+        <div class="text-xs text-gray-500">(avg)</div>
+      </div>
+
+      {{-- Star breakdown --}}
+      <div class="grid grid-cols-1 gap-1.5 w-full md:w-80">
+        @for($s = 5; $s >= 1; $s--)
+          @php
+            $count = (int) ($stats['by_star'][$s] ?? 0);
+            $total = max(1, (int) ($stats['total'] ?? 0));
+            $pct   = round(($count / $total) * 100);
+            $bar   = match(true) {
+              $s >= 4 => 'bg-emerald-500',
+              $s == 3 => 'bg-amber-500',
+              default => 'bg-rose-500',
+            };
+          @endphp
+          <div class="flex items-center gap-2">
+            <span class="text-xs w-6 text-gray-600">{{ $s }}★</span>
+            <div class="flex-1 h-2 rounded bg-white/70 border border-white/60 overflow-hidden">
+              <div class="h-full {{ $bar }}" style="width: {{ $pct }}%"></div>
+            </div>
+            <span class="text-[11px] text-gray-600 w-12 text-right">{{ $count }}</span>
+          </div>
+        @endfor
+      </div>
+    </div>
+  </div>
+
+  {{-- ===== Filters ===== --}}
   <div class="flex flex-wrap gap-3 items-end mb-4">
     <div>
       <label class="block text-xs text-gray-500 mb-1">Search</label>
@@ -47,7 +102,7 @@
     </button>
   </div>
 
-  {{-- Table --}}
+  {{-- ===== Table ===== --}}
   <div class="overflow-hidden border rounded-xl">
     <div class="overflow-x-auto">
       <table class="min-w-full text-sm">
@@ -128,7 +183,17 @@
     </div>
   </div>
 
-  <div class="mt-4">{{ $rows->links() }}</div>
+  {{-- Pager + “showing” --}}
+  <div class="mt-4 flex items-center justify-between gap-3">
+    <div class="text-xs text-gray-500">
+      @if($rows->total() > 0)
+        Showing {{ $rows->firstItem() }}–{{ $rows->lastItem() }} of {{ $rows->total() }} reviews
+      @else
+        0 reviews
+      @endif
+    </div>
+    <div>{{ $rows->links() }}</div>
+  </div>
 
   {{-- Delete confirm --}}
   <div x-cloak x-show="$wire.confirmingDelete"

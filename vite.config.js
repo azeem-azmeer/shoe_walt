@@ -9,12 +9,14 @@ export default defineConfig({
       input: [
         'resources/css/app.css',
         'resources/js/app.js',
+        'resources/js/user-index.js',
         'resources/js/user-productpreview.js', // your PDP script as a separate entry
         'resources/js/user-wishlist.js',
         'resources/js/admin-product-create.js',
         'resources/js/admin-products.js',
         'resources/js/admin-product-edit.js',
         'resources/js/user-cart.js',
+        'resources/js/user-review.js',
       ],
       refresh: true,
     }),
