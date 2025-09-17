@@ -18,6 +18,7 @@
   @endphp
 
   {{-- ======= HERO SLIDER (Accessible, single block) ======= --}}
+  {{-- ======= HERO SLIDER (Responsive & Accessible) ======= --}}
   <section
     x-data="heroSlider({ images: @js($heroSlides), interval: 5000 })"
     x-init="start()"
@@ -28,7 +29,8 @@
     role="region"
     aria-roledescription="carousel"
     aria-label="Featured promotions"
-    class="relative w-full h-[90vh] sm:h-[92vh] md:h-[95vh] min-h-[460px] overflow-hidden outline-none"
+    class="relative w-full h-[88svh] sm:h-[96svh] md:h-[100svh] min-h-[480px] overflow-hidden outline-none"
+
   >
     <template x-for="(slide, i) in images" :key="i">
       <div
@@ -38,28 +40,28 @@
         :aria-hidden="index !== i"
       >
         <img :src="slide.src" :alt="slide.alt"
-             class="w-full h-full object-cover"
-             :loading="i === 0 ? 'eager' : 'lazy'"/>
-        <div class="absolute inset-0 bg-gradient-to-t from-black/40 via-black/10 to-transparent"></div>
+            class="w-full h-full object-cover"
+            :loading="i === 0 ? 'eager' : 'lazy'"/>
+        <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent"></div>
       </div>
     </template>
 
     {{-- Slider arrows --}}
     <button @click="prev()"
-      class="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full h-12 w-12 sm:h-10 sm:w-10 flex items-center justify-center shadow
-             focus:outline-none focus:ring-2 focus:ring-black"
+      class="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center shadow
+            focus:outline-none focus:ring-2 focus:ring-black"
       aria-label="Previous slide">‹</button>
 
     <button @click="next()"
-      class="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full h-12 w-12 sm:h-10 sm:w-10 flex items-center justify-center shadow
-             focus:outline-none focus:ring-2 focus:ring-black"
+      class="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center shadow
+            focus:outline-none focus:ring-2 focus:ring-black"
       aria-label="Next slide">›</button>
 
     {{-- Dots --}}
-    <div class="absolute bottom-24 sm:bottom-20 inset-x-0 flex justify-center gap-3">
+    <div class="absolute bottom-16 sm:bottom-20 inset-x-0 flex justify-center gap-2 sm:gap-3">
       <template x-for="(slide, i) in images" :key="i">
         <button
-          class="h-3 w-3 rounded-full border border-white/80"
+          class="h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full border border-white/80"
           :class="index === i ? 'bg-white' : 'bg-white/50 hover:bg-white/70'"
           @click="index = i"
           :aria-label="`Go to slide ${i+1}`"
@@ -69,10 +71,10 @@
     </div>
 
     {{-- SHOP NOW --}}
-    <div class="absolute bottom-8 inset-x-0 flex justify-center">
+    <div class="absolute bottom-5 sm:bottom-8 inset-x-0 flex justify-center">
       <a
         :href="images[index]?.href || '#'"
-        class="px-6 py-3 bg-white text-black font-semibold tracking-wide inline-flex items-center gap-2 shadow hover:shadow-md transition
+        class="px-4 sm:px-6 py-2 sm:py-3 bg-white text-black text-sm sm:text-base font-semibold tracking-wide inline-flex items-center gap-2 shadow hover:shadow-md transition
               focus:outline-none focus:ring-2 focus:ring-white/80"
         :aria-label="`Shop now: ${images[index]?.alt || ''}`"
       >
@@ -80,6 +82,17 @@
       </a>
     </div>
   </section>
+  <section class="w-full bg-black text-white py-2 sm:py-3">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-center">
+      <h2 class="text-lg sm:text-xl md:text-2xl font-extrabold tracking-wider uppercase text-center">
+        Summer Drops
+      </h2>
+    </div>
+  </section>
+
+
+
+
 
   <main id="main-content">
     {{-- ======= Category tiles (ONE block: scroller on mobile, grid on md+) ======= --}}

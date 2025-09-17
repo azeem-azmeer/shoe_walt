@@ -9,14 +9,25 @@ class EnsureAdmin
 {
     public function handle(Request $request, Closure $next)
     {
-        // If Sanctum didn't authenticate the session, you'll get 401 here:
-        if (! $request->user()) {
-            return response()->json(['message' => 'Unauthenticated.'], 401);
+        $user = $request->user(); // session for web; token for API if using Sanctum on API routes
+
+        // Not logged in
+        if (!$user) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json(['message' => 'Unauthenticated.'], 401);
+            }
+            return redirect()->route('login');
         }
 
-        // If logged in but not an admin, return 403:
-        if (($request->user()->role ?? null) !== 'admin') {
-            return response()->json(['message' => 'Forbidden'], 403);
+        // Check admin via role OR boolean flag; be case-insensitive
+        $isAdmin = strtolower((string)($user->role ?? '')) === 'admin'
+                || (bool)($user->is_admin ?? false);
+
+        if (!$isAdmin) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json(['message' => 'Forbidden'], 403);
+            }
+            abort(403); // will use resources/views/errors/403.blade.php if present
         }
 
         return $next($request);
