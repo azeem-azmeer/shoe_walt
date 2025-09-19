@@ -8,15 +8,6 @@
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
       <div class="p-6 space-y-6 bg-white shadow-sm sm:rounded-lg">
 
-        {{-- ✅ Visible welcome banner (inside page body, not in header slot) --}}
-        @auth
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2
-                    p-3 rounded-md bg-blue-50 text-blue-800 border border-blue-200">
-          <p>Welcome {{ Auth::user()->name }} 🎉</p>
-          <p>You are logged in as <b>Admin</b>.</p>
-        </div>
-        @endauth
-
         @if(session('success'))
           <div class="p-3 bg-green-100 text-green-800 rounded-lg shadow">
             ✅ {{ session('success') }}

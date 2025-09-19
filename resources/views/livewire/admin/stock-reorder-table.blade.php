@@ -1,11 +1,6 @@
 <div class="space-y-5">
   {{-- tiny helpers --}}
-  <style>
-    .tbl-head{position:sticky;top:0;z-index:10;background:linear-gradient(180deg,#fcfcfc,#f5f5f5);border-bottom:1px solid #eee;box-shadow:0 1px 0 rgba(0,0,0,.03)}
-    .zebra tbody tr:nth-child(odd){background:rgba(0,0,0,.015)}
-    .chip-dot{width:.45rem;height:.45rem;border-radius:9999px;display:inline-block}
-    .glow{box-shadow:0 10px 20px -8px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.8)}
-  </style>
+
 
   {{-- ====== SUMMARY BAR ====== --}}
   @php
@@ -48,14 +43,16 @@
         <label class="block text-xs font-medium text-gray-500 mb-1">Search</label>
       </div>
       <div class="relative">
-        <input type="search"
-               wire:model.debounce.400ms="search"
-               placeholder="Search products"
-               class="w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300" />
-        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-gray-400"
-             viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.9.9l.3.3v.8l5 5 1.5-1.5-5-5Zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14Z"/>
-        </svg>
+        <form wire:submit.prevent="go" class="flex gap-2">
+          <input type="search"
+                wire:model.debounce.400ms="search"
+                placeholder="Search products"
+                class="w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300" />
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-gray-400"
+              viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.9.9l.3.3v.8l5 5 1.5-1.5-5-5Zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14Z"/>
+          </svg>
+        </form>
       </div>
     </div>
 

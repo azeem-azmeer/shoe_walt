@@ -62,4 +62,9 @@ class StockReorderTable extends Component
 
         return view('livewire.admin.stock-reorder-table', compact('products'));
     }
+    public function go()
+{
+    $this->resetPage(); // refresh pagination
+}
+
 }

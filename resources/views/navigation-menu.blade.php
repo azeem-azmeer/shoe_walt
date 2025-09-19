@@ -117,9 +117,7 @@
               @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
                 <a href="{{ route('api-tokens.index') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-50">API Tokens</a>
               @endif
-              @if ($isAdmin)
-                <a href="{{ route('admin.dashboard') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-50">Admin Dashboard</a>
-              @endif
+             
 
               <div class="my-2 border-t"></div>
 

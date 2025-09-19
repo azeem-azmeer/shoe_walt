@@ -2,8 +2,8 @@
   <x-slot name="header">
     <h2 class="font-bold text-xl">Customers</h2>
   </x-slot>
+<div class="w-full px-0">
+  <livewire:admin.customers-table />
+</div>
 
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <livewire:admin.customers-table />
-  </div>
 </x-app-layout>
