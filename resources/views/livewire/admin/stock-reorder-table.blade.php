@@ -1,7 +1,6 @@
 <div class="space-y-5">
   {{-- tiny helpers --}}
 
-
   {{-- ====== SUMMARY BAR ====== --}}
   @php
     $pageZeroCount = 0;
@@ -9,61 +8,60 @@
       $pageZeroCount += ($pp->sizes ? $pp->sizes->where('qty', 0)->count() : 0);
     }
   @endphp
-  <div class="flex flex-wrap items-center gap-3 justify-between bg-white/80 rounded-xl border px-3 sm:px-4 py-2 glow">
-    <div class="flex items-center gap-2 text-sm text-gray-600">
-      <svg class="h-4 w-4 text-gray-500" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        <path d="M3 5h18v2H3V5Zm0 6h18v2H3v-2Zm0 6h18v2H3v-2Z"/>
-      </svg>
-      <span>
-        Showing <strong>{{ $products->firstItem() ?? 0 }}–{{ $products->lastItem() ?? 0 }}</strong> of
-        <strong>{{ $products->total() }}</strong>
-      </span>
-    </div>
+ {{-- ====== FILTERS (Stock Reorder label + Category + Search + Clear) ====== --}}
+<div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+  {{-- Stock Reorder (label only) --}}
+  {{-- Stock Reorder (plain heading like "Products") --}}
+<div class="sm:col-span-2 flex items-end">
+  <h2 class="text-2xl font-bold text-gray-900 leading-none">Stock Reorder</h2>
+</div>
 
-    <div class="flex items-center gap-2">
-      <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-100 text-rose-700 text-sm">
-        <span class="chip-dot bg-rose-600"></span>
-        <strong>{{ $pageZeroCount }}</strong> 0-stock sizes on this page
-      </span>
-    </div>
-  </div>
 
-  {{-- ====== FILTERS ====== --}}
-  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-    <select wire:model.live="category"
-            class="col-span-2 sm:col-span-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-gray-900/10">
+  {{-- Category --}}
+  <div class="sm:col-span-3">
+    <label class="block text-xs font-medium text-gray-500 mb-1">Category</label>
+    <select
+      wire:model.live="category"
+      class="h-11 w-full rounded-xl border border-gray-300 px-3 text-sm
+             focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300"
+    >
       <option value="">All Categories</option>
       <option value="Men">Men</option>
       <option value="Women">Women</option>
       <option value="Kids">Kids</option>
     </select>
+  </div>
 
-    <div class="col-span-2 sm:col-span-2">
-      <div class="flex items-center justify-between">
-        <label class="block text-xs font-medium text-gray-500 mb-1">Search</label>
-      </div>
-      <div class="relative">
-        <form wire:submit.prevent="go" class="flex gap-2">
-          <input type="search"
-                wire:model.debounce.400ms="search"
-                placeholder="Search products"
-                class="w-full rounded-lg border border-gray-300 pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300" />
-          <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-gray-400"
-              viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.9.9l.3.3v.8l5 5 1.5-1.5-5-5Zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14Z"/>
-          </svg>
-        </form>
-      </div>
-    </div>
-
-    <div class="col-span-2 sm:col-span-1 flex sm:justify-end">
-      <button type="button"
-              wire:click="clear"
-              class="w-full sm:w-auto rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50">
-        Clear
-      </button>
+  {{-- Search --}}
+  <div class="sm:col-span-5">
+    <label class="block text-xs font-medium text-gray-500 mb-1">Search</label>
+    <div class="relative">
+      <form wire:submit.prevent="go">
+        <input
+          type="search"
+          wire:model.debounce.400ms="search"
+          placeholder="Search products"
+          class="h-11 w-full rounded-xl border border-gray-300 pl-10 pr-3 text-sm
+                 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300"
+        />
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-[18px] w-[18px] text-gray-400"
+             viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+          <path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.9.9l.3.3v.8l5 5 1.5-1.5-5-5Zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14Z"/>
+        </svg>
+      </form>
     </div>
   </div>
+
+  {{-- Clear --}}
+  <div class="sm:col-span-2 flex items-end sm:justify-end">
+    <button type="button"
+            wire:click="clear"
+            class="h-11 w-full sm:w-auto rounded-xl border border-gray-300 bg-white px-4 text-sm hover:bg-gray-50">
+      Clear
+    </button>
+  </div>
+</div>
+
 
   {{-- ====== TABLE ====== --}}
   <div class="relative bg-white rounded-xl border shadow-sm overflow-hidden glow">
