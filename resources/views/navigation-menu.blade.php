@@ -162,18 +162,38 @@
       </div>
     </div>
 
-    {{-- Mobile menu --}}
-    <div x-show="open" x-cloak class="md:hidden pb-4">
-      <ul class="flex flex-col gap-2 text-base pt-2">
-        {{-- ... unchanged list items ... --}}
-        @if($isAdmin)
-          <li><a href="{{ route('admin.dashboard') }}" class="px-2 py-1 rounded hover:bg-gray-50">Dashboard</a></li>
-          {{-- etc --}}
-        @else
-          <li><a href="{{ route('user.index') }}" class="px-2 py-1 rounded hover:bg-gray-50">Home</a></li>
-          {{-- etc --}}
-        @endif
-      </ul>
-    </div>
+    {{-- Mobile menu panel --}}
+<div
+  id="mobile-menu"
+  x-show="open"
+  x-cloak
+  @click.outside="open = false"
+  class="md:hidden pb-4"
+  x-transition:enter="transition ease-out duration-200"
+  x-transition:enter-start="opacity-0 -translate-y-2"
+  x-transition:enter-end="opacity-100 translate-y-0"
+  x-transition:leave="transition ease-in duration-150"
+  x-transition:leave-start="opacity-100 translate-y-0"
+  x-transition:leave-end="opacity-0 -translate-y-2"
+>
+  <ul class="flex flex-col gap-2 text-base pt-2">
+    @if($isAdmin)
+      <li><a href="{{ route('admin.dashboard') }}" class="px-3 py-2 rounded-lg hover:bg-gray-50">Dashboard</a></li>
+      <li><a href="{{ route('admin.products') }}" class="px-3 py-2 rounded-lg hover:bg-gray-50">Products</a></li>
+      <li><a href="{{ route('admin.reorders') }}" class="px-3 py-2 rounded-lg hover:bg-gray-50">Stock Reorders</a></li>
+      <li><a href="{{ route('admin.customers') }}" class="px-3 py-2 rounded-lg hover:bg-gray-50">Customers</a></li>
+      <li><a href="{{ route('admin.orders') }}" class="px-3 py-2 rounded-lg hover:bg-gray-50">Orders</a></li>
+      <li><a href="{{ route('admin.reviews') }}" class="px-3 py-2 rounded-lg hover:bg-gray-50">Customer Reviews</a></li>
+    @else
+      <li><a href="{{ route('user.index') }}" class="px-3 py-2 rounded-lg hover:bg-gray-50">Home</a></li>
+      <li><a href="{{ route('user.mens') }}" class="px-3 py-2 rounded-lg hover:bg-gray-50">Men</a></li>
+      <li><a href="{{ route('user.womans') }}" class="px-3 py-2 rounded-lg hover:bg-gray-50">Women</a></li>
+      <li><a href="{{ route('user.kids') }}" class="px-3 py-2 rounded-lg hover:bg-gray-50">Kids</a></li>
+
+     
+    @endif
+  </ul>
+</div>
+
   </div>
 </nav>
