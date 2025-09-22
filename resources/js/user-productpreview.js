@@ -1,9 +1,9 @@
-// resources/js/pdp.js
+// resources/js/user-productpreview.js
 
-// Fallback meta getter (if window.__APP is missing)
+
+// ----------------------- App config helpers -----------------------
 const getMeta = (name) => document.querySelector(`meta[name="${name}"]`)?.content || '';
 
-// Build the runtime config from window.__APP with safe fallbacks
 const APP = {
   isAuth: !!(window.__APP?.isAuth ?? (getMeta('app:is-auth') === '1')),
   registerUrl: window.__APP?.registerUrl || getMeta('app:register-url') || '/register',
@@ -17,7 +17,7 @@ const APP = {
 const api = (p) => `${APP.baseUrl}${p.startsWith('/') ? p : '/' + p}`;
 const csrfToken = () => APP.csrf;
 
-// Common headers
+// These are still used for the *initial* CSRF cookie request only
 const JSON_HEADERS = () => ({
   'Accept': 'application/json',
   'X-Requested-With': 'XMLHttpRequest',
@@ -30,6 +30,61 @@ const GET_HEADERS = () => ({
   'X-CSRF-TOKEN': csrfToken(),
 });
 
+// ----------------------- Bearer token helpers -----------------------
+const CSRF_TOKEN =
+  document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+async function mintCustomerToken() {
+  const res = await fetch(api('/user/api-token'), {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': CSRF_TOKEN,
+      'Accept': 'application/json',
+    },
+    credentials: 'include', // use web session to mint
+  });
+
+  if (!res.ok) {
+    let msg = 'Failed to mint customer token';
+    try { msg = (await res.json())?.message || msg; } catch {}
+    throw new Error(msg);
+  }
+
+  const data = await res.json();
+  window.__customerBearer = data?.token;
+  return window.__customerBearer;
+}
+
+async function getCustomerBearer() {
+  if (window.__customerBearer) return window.__customerBearer;
+  return await mintCustomerToken();
+}
+
+/**
+ * authedFetch — sends Authorization: Bearer <token> for customer calls
+ * Retries once on 401 by reminting the token.
+ */
+async function authedFetch(input, init = {}, retry = true) {
+  const token = await getCustomerBearer();
+  const headers = new Headers(init.headers || {});
+  headers.set('Authorization', `Bearer ${token}`);
+  headers.set('X-Requested-With', 'XMLHttpRequest');
+  headers.set('Accept', headers.get('Accept') || 'application/json');
+
+  const res = await fetch(input, { ...init, headers });
+
+  if (res.status === 401 && retry) {
+    window.__customerBearer = null;
+    await mintCustomerToken();
+    return authedFetch(input, init, /* retry */ false);
+  }
+  return res;
+}
+
+window.getCustomerBearer = getCustomerBearer; // helpful in console
+
+// ----------------------- Alpine stores & UI -----------------------
 document.addEventListener('alpine:init', () => {
   const IS_AUTH = APP.isAuth;
   const REG_URL = APP.registerUrl;
@@ -68,10 +123,11 @@ document.addEventListener('alpine:init', () => {
 
   Alpine.store('pdp', { selectedSize:null });
 
+  // Only needed once to set the XSRF cookie for Sanctum when minting the token
   const ensureCsrf = async () => {
     if (!document.cookie.includes('XSRF-TOKEN=')) {
       await fetch(api('sanctum/csrf-cookie'), {
-        credentials:'same-origin',
+        credentials:'include',
         headers: GET_HEADERS(),
       });
     }
@@ -91,11 +147,9 @@ document.addEventListener('alpine:init', () => {
       if (badge) badge.textContent = String(this.count);
     },
     async remove(id){
-      await ensureCsrf();
-      const res = await fetch(api(`api/cart/${id}`), {
+      // Use bearer auth here too
+      const res = await authedFetch(api(`api/cart/${id}`), {
         method:'DELETE',
-        credentials:'same-origin',
-        headers: GET_HEADERS(),
       });
       if (res.status===401){ window.location.assign(REG_URL); return; }
       if (!res.ok){ Alpine.store('flash').show('Could not remove item.','error'); return; }
@@ -116,19 +170,23 @@ document.addEventListener('alpine:init', () => {
     async addToCart(productId){
       if (!this.ensureAuth()) return false;
       const size = Alpine.store('pdp').selectedSize;
-      if (!size){ Alpine.store('flash').show('Please select a size.','warning'); return false; }
+      if (!size){
+        Alpine.store('flash').show('Please select a size.','warning');
+        return false;
+      }
 
+      // Make sure we can mint the token (needs CSRF cookie once)
       await ensureCsrf();
-      const res = await fetch(api('api/cart'), {
+
+      const res = await authedFetch(api('api/cart'), {
         method:'POST',
-        credentials:'same-origin',
-        headers: JSON_HEADERS(),
-        body: JSON.stringify({ product_id: productId, size, quantity: 1 })
+        body: JSON.stringify({ product_id: productId, size, quantity: 1 }),
+        headers: { 'Content-Type': 'application/json' }, // authedFetch adds Accept + XRW + Authorization
       });
 
       if (res.status===401){ window.location.assign(REG_URL); return false; }
       if (res.status===422){
-        let msg='Not enough stock for that size.'; 
+        let msg='Not enough stock for that size.';
         try{ const d=await res.json(); if (d?.message) msg=d.message; }catch{}
         Alpine.store('flash').show(msg,'error',6000);
         return false;
@@ -148,16 +206,16 @@ document.addEventListener('alpine:init', () => {
       if (!this.ensureAuth()) return false;
 
       await ensureCsrf();
-      const res = await fetch(api('api/wishlist'), {
+
+      const res = await authedFetch(api('api/wishlist'), {
         method:'POST',
-        credentials:'same-origin',
-        headers: JSON_HEADERS(),
-        body: JSON.stringify({ product_id: productId })
+        body: JSON.stringify({ product_id: productId }),
+        headers: { 'Content-Type': 'application/json' },
       });
 
       if (res.status===401){ window.location.assign(REG_URL); return false; }
       if (!res.ok){
-        let msg='Could not add to wishlist.'; 
+        let msg='Could not add to wishlist.';
         try{ const d=await res.json(); if (d?.message) msg=d.message; }catch{}
         Alpine.store('flash').show(msg,'error',5000);
         return false;

@@ -2,6 +2,9 @@
 <x-app-layout>
     <x-slot name="header"></x-slot>
 
+    {{-- Needed so /admin/api-token mint can include X-CSRF-TOKEN --}}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <div class="py-6">
         <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
             <div class="p-6 bg-white shadow-sm sm:rounded-lg space-y-6">
@@ -19,7 +22,7 @@
                         Edit Product — {{ $product->product_name }}
                     </h1>
 
-                    {{-- Images block (always side-by-side) --}}
+                    {{-- Images block --}}
                     <div class="grid grid-cols-2 gap-8 items-start">
                         {{-- Main image --}}
                         <div>
@@ -66,8 +69,8 @@
                                         </div>
 
                                         <input id="vInput-{{ $i }}" type="file" name="view_images[{{ $i }}]"
-                                        accept=".jpg,.jpeg,.png,.webp,.avif,image/jpeg,image/png,image/webp,image/avif"
-                                        class="absolute inset-0 opacity-0 cursor-pointer">
+                                               accept=".jpg,.jpeg,.png,.webp,.avif,image/jpeg,image/png,image/webp,image/avif"
+                                               class="absolute inset-0 opacity-0 cursor-pointer">
                                     </div>
                                 @endfor
                             </div>
@@ -138,10 +141,17 @@
                         <a href="{{ route('admin.products') }}" class="px-4 py-2 border rounded">Cancel</a>
                     </div>
                 </form>
-
             </div>
         </div>
     </div>
 
-   @vite('resources/js/admin-product-edit.js')
+    {{-- Expose URLs to JS --}}
+    <script>
+      window.__APP = Object.assign({}, window.__APP || {}, {
+        baseUrl: @js(url('/')),
+        adminProductsUrl: @js(route('admin.products')),
+      });
+    </script>
+
+    @vite('resources/js/admin-product-edit.js')
 </x-app-layout>

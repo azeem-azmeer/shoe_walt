@@ -1,22 +1,73 @@
 // resources/js/user-review.js
 
-// ---------- helpers ----------
-function getCookie(name){
-  return document.cookie.split('; ').find(r => r.startsWith(name+'='))?.split('=')[1];
+// ---------- App + CSRF helpers ----------
+const getMeta = (name) => document.querySelector(`meta[name="${name}"]`)?.content || '';
+
+const APP = {
+  baseUrl: (window.__APP?.baseUrl ||
+            getMeta('app:base-url') ||
+            document.querySelector('base')?.href ||
+            window.location.origin).replace(/\/+$/, ''),
+  csrf: window.__APP?.csrf || getMeta('csrf-token'),
+};
+const api = (p) => `${APP.baseUrl}${p.startsWith('/') ? p : '/' + p}`;
+const CSRF_TOKEN = APP.csrf;
+
+// We only need this once to mint the token (Sanctum requires the cookie)
+async function ensureCsrfCookie() {
+  if (!document.cookie.includes('XSRF-TOKEN=')) {
+    await fetch(api('/sanctum/csrf-cookie'), {
+      credentials: 'include',
+      headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+    });
+  }
 }
-async function ensureCsrf(){
-  await fetch('/sanctum/csrf-cookie', { credentials: 'same-origin' });
+
+// ---------- Bearer token helpers (same pattern as cart) ----------
+async function mintCustomerToken() {
+  const res = await fetch(api('/user/api-token'), {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': CSRF_TOKEN,
+      'Accept': 'application/json',
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    let msg = 'Failed to mint customer token';
+    try { msg = (await res.json())?.message || msg; } catch {}
+    throw new Error(msg);
+  }
+  const data = await res.json();
+  window.__customerBearer = data?.token;
+  return window.__customerBearer;
 }
-async function api(path, opts = {}){
-  await ensureCsrf();
-  const token = decodeURIComponent(getCookie('XSRF-TOKEN') || '');
-  const headers = Object.assign({
-    'Accept': 'application/json',
-    'Content-Type': 'application/json',
-    'X-XSRF-TOKEN': token
-  }, opts.headers || {});
-  return fetch(path, Object.assign({ credentials: 'same-origin', headers }, opts));
+
+async function getCustomerBearer() {
+  if (window.__customerBearer) return window.__customerBearer;
+  await ensureCsrfCookie();          // make sure Sanctum cookie exists before mint
+  return mintCustomerToken();
 }
+
+async function authedFetch(input, init = {}, retry = true) {
+  const token = await getCustomerBearer();
+  const headers = new Headers(init.headers || {});
+  headers.set('Authorization', `Bearer ${token}`);
+  headers.set('X-Requested-With', 'XMLHttpRequest');
+  headers.set('Accept', headers.get('Accept') || 'application/json');
+
+  const res = await fetch(input, { ...init, headers });
+
+  if (res.status === 401 && retry) {
+    window.__customerBearer = null;     // rotate once
+    await mintCustomerToken();
+    return authedFetch(input, init, false);
+  }
+  return res;
+}
+
+// ---------- small utils ----------
 function oid(doc){
   if (!doc) return null;
   if (typeof doc === 'string') return doc;
@@ -113,17 +164,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const msg = document.getElementById('reviewMsg');
   const orderId = Number(box.dataset.orderId);
 
-  // Show create form immediately so the button is visible
+  // show create form first
   renderForm(box, orderId, null);
   bindCreate();
-
-  // Then check if a review already exists and swap UI if needed
   loadReview();
 
   async function loadReview(){
-    // cache-bust so we always see fresh state
     try{
-      const res  = await api(`/api/reviews?order_id=${orderId}&_=${Date.now()}`);
+      const res  = await authedFetch(api(`/api/reviews?order_id=${orderId}&_=${Date.now()}`));
       if (res.status === 401){
         msg.className = 'mt-3 text-sm text-blue-700';
         msg.textContent = 'Please log in to leave a review.';
@@ -137,13 +185,11 @@ document.addEventListener('DOMContentLoaded', () => {
         msg.textContent = '';
         bindExisting(review);
       }else{
-        // ensure form visible if no review
         renderForm(box, orderId, null);
         bindCreate();
         msg.textContent = '';
       }
     }catch(e){
-      // Keep the form; show inline error (no alerts)
       msg.className = 'mt-3 text-sm text-red-600';
       msg.textContent = 'Could not load review, but you can still submit one.';
     }
@@ -155,13 +201,19 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       msg.className = 'mt-3 text-sm';
       msg.textContent = 'Saving...';
+
       const payload = {
         order_id: Number(form.order_id.value),
         rating:   Number(form.rating.value),
         feedback: form.feedback.value.trim()
       };
 
-      const res = await api('/api/reviews', { method: 'POST', body: JSON.stringify(payload) });
+      const res = await authedFetch(api('/api/reviews'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
       const ct = res.headers.get('content-type') || '';
       if (ct.includes('application/json')) {
         const json = await res.json();
@@ -179,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       msg.className = 'mt-3 text-sm text-emerald-700';
       msg.textContent = 'Thank you for your review!';
-      await loadReview(); // auto-refresh UI
+      await loadReview();
       setTimeout(()=>{ msg.textContent=''; }, 2500);
     });
   }
@@ -198,7 +250,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const payload = { rating: Number(form.rating.value), feedback: form.feedback.value.trim() };
         const id = oid(review);
-        const res = await api(`/api/reviews/${id}`, { method:'PUT', body: JSON.stringify(payload) });
+
+        const res = await authedFetch(api(`/api/reviews/${id}`), {
+          method:'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
 
         const ct = res.headers.get('content-type') || '';
         if (ct.includes('application/json')) {
@@ -217,18 +274,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         msg.className = 'mt-3 text-sm text-emerald-700';
         msg.textContent = 'Review updated.';
-        await loadReview(); // auto-refresh UI
+        await loadReview();
         setTimeout(()=>{ msg.textContent=''; }, 2500);
       });
     });
 
-    // DELETE: no alert/confirm; show inline messages and auto-refresh
     document.getElementById('deleteReview')?.addEventListener('click', async ()=>{
       msg.className = 'mt-3 text-sm';
       msg.textContent = 'Deleting your review...';
 
       const id = oid(review);
-      const res = await api(`/api/reviews/${id}`, { method:'DELETE' });
+      const res = await authedFetch(api(`/api/reviews/${id}`), { method:'DELETE' });
 
       if (!res.ok){
         const ct = res.headers.get('content-type') || '';
@@ -246,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       msg.className = 'mt-3 text-sm text-emerald-700';
       msg.textContent = 'Your review was deleted. You can add a new one below.';
-      await loadReview(); // auto-refresh into empty form
+      await loadReview();
       setTimeout(()=>{ msg.textContent=''; }, 2500);
     });
   }

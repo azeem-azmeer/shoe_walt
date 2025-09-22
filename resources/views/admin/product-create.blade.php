@@ -3,6 +3,9 @@
     <h2 class="font-semibold text-xl text-gray-800 leading-tight">Add Product</h2>
   </x-slot>
 
+  {{-- Important for token mint --}}
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+
   <div class="py-6">
     <div class="max-w-6xl mx-auto sm:px-6 lg:px-8">
       <div class="p-6 bg-white shadow-sm sm:rounded-lg space-y-8">
@@ -103,16 +106,16 @@
       </div>
     </div>
   </div>
+
   {{-- Provide config to JS (respects sub-folder deployments) --}}
-  <script>
-    window.__APP = Object.assign({}, window.__APP || {}, {
-      baseUrl: @js(url('/')),
-      csrf: @js(csrf_token()),
-      adminProductsUrl: @js(route('admin.products')),
-    });
-  </script>
+ <script>
+  window.__APP = Object.assign({}, window.__APP || {}, {
+    baseUrl: @js(url('/')),
+    csrf: @js(csrf_token()),
+    adminProductsUrl: @js(route('admin.products')),
+  });
+</script>
+
 
   @vite('resources/js/admin-product-create.js')
-
-  
 </x-app-layout>

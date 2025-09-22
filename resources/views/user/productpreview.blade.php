@@ -244,12 +244,14 @@
                     class="h-14 w-14 border rounded flex items-center justify-center hover:bg-gray-50"
                     aria-label="Add to wishlist" title="Add to wishlist">♥</button>
 
-            <button type="button"
-                    :disabled="!canAdd || !$store.pdp.selectedSize"
-                    @click="$store.actions.addToCart({{ $product->product_id }})"
-                    class="h-12 w-40 sm:w-48 bg-black text-white font-bold rounded shadow disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-md transition">
+            <button
+              type="button"
+              :disabled="!canAdd || !$store.pdp.selectedSize"
+              @click="$store.actions.addToCart({{ $product->product_id }})"
+              class="h-12 w-40 sm:w-48 bg-black text-white font-bold rounded shadow disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-md transition">
               ADD TO CART
             </button>
+
           </div>
 
           {{-- Collapsibles --}}

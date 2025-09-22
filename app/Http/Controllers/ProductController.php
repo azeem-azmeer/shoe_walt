@@ -142,8 +142,10 @@ public function index(Request $req)
         ]);
     }
 
-    public function store(Request $req)
-    {
+    // ---------- CREATE ----------
+public function store(Request $req)
+{
+    try {
         $validated = $req->validate([
             'product_name' => 'required|string|max:255',
             'description'  => 'nullable|string',
@@ -157,7 +159,7 @@ public function index(Request $req)
 
         $sizes = $this->parseSizes($validated['sizes']);
 
-        return DB::transaction(function () use ($req, $validated, $sizes) {
+        return \DB::transaction(function () use ($req, $validated, $sizes) {
             $mainPath = $req->file('main_image')->store('products', 'public');
 
             $views = [];
@@ -166,7 +168,7 @@ public function index(Request $req)
             }
             $views = array_pad($views, 4, null);
 
-            $p = Product::create([
+            $p = \App\Models\Product::create([
                 'product_name' => $validated['product_name'],
                 'description'  => $validated['description'] ?? null,
                 'price'        => $validated['price'],
@@ -182,22 +184,36 @@ public function index(Request $req)
 
             foreach ($sizes as $s) {
                 if (($s['size'] ?? '') !== '' && isset($s['qty'])) {
-                    ProductSize::create([
+                    \App\Models\ProductSize::create([
                         'product_id' => $p->product_id,
-                        'size'       => $s['size'],
+                        'size'       => (string) $s['size'],
                         'qty'        => (int) $s['qty'],
                     ]);
                 }
             }
 
-            $p->update(['stock' => (int) ProductSize::where('product_id', $p->product_id)->sum('qty')]);
+            if (\Schema::hasColumn('products', 'stock')) {
+                $p->update([
+                    'stock' => (int) \App\Models\ProductSize::where('product_id', $p->product_id)->sum('qty')
+                ]);
+            }
 
             return response()->json(['message' => 'Created', 'id' => $p->product_id], 201);
-        });
+    });
+    } catch (\Illuminate\Validation\ValidationException $ve) {
+        return response()->json(['message' => 'Validation failed', 'errors' => $ve->errors()], 422);
+    } catch (\Throwable $e) {
+        \Log::error('Product store failed', ['e' => $e]);
+        $msg = config('app.debug') ? $e->getMessage() : 'Server error';
+        return response()->json(['message' => "Create failed: $msg"], 500);
     }
+}
 
-   public function update(Request $req, int $id)
-    {
+
+// ---------- UPDATE ----------
+public function update(Request $req, int $id)
+{
+    try {
         $p = Product::with('sizes')->find($id);
         if (!$p) return response()->json(['message' => 'Not found'], 404);
 
@@ -210,19 +226,19 @@ public function index(Request $req)
             'main_image'            => 'nullable|file|mimes:jpg,jpeg,png,webp,avif|max:5120',
             'view_images.*'         => 'nullable|file|mimes:jpg,jpeg,png,webp,avif|max:5120',
             'remove_view_images.*'  => 'nullable|boolean',
-            'sizes'                 => 'required',
+            'sizes'                 => 'required', // array or JSON string
         ]);
 
         $sizes = $this->parseSizes($validated['sizes']);
 
         return DB::transaction(function () use ($req, $validated, $sizes, $p) {
-            // Main image (replace if uploaded)
+            // main image replace
             if ($req->hasFile('main_image')) {
                 if ($p->main_image) Storage::disk('public')->delete($p->main_image);
                 $p->main_image = $req->file('main_image')->store('products', 'public');
             }
 
-            // --- View images: update per slot without reordering ---
+            // view images per-slot update
             $incoming = $req->file('view_images', []);          // e.g. [0 => UploadedFile, 2 => UploadedFile]
             $remove   = $req->input('remove_view_images', []);  // e.g. [1 => "1"]
 
@@ -233,22 +249,19 @@ public function index(Request $req)
                 $p->view_image4,
             ];
 
-            foreach ([0, 1, 2, 3] as $i) {
+            foreach ([0,1,2,3] as $i) {
                 if (isset($incoming[$i]) && $incoming[$i]) {
-                    // Replace this slot with uploaded file
                     if ($old[$i]) Storage::disk('public')->delete($old[$i]);
                     $old[$i] = $incoming[$i]->store('products', 'public');
                 } elseif (isset($remove[$i]) && $remove[$i]) {
-                    // Explicitly clear this slot
                     if ($old[$i]) Storage::disk('public')->delete($old[$i]);
                     $old[$i] = null;
                 }
             }
 
             [$p->view_image1, $p->view_image2, $p->view_image3, $p->view_image4] = $old;
-            // --- /view images ---
 
-            // Update basic fields
+            // basic fields
             $p->fill([
                 'product_name' => $validated['product_name'],
                 'description'  => $validated['description'] ?? null,
@@ -257,51 +270,73 @@ public function index(Request $req)
                 'status'       => $validated['status'],
             ])->save();
 
-            // Replace sizes
+            // replace sizes
             $p->sizes()->delete();
             foreach ($sizes as $s) {
                 if (($s['size'] ?? '') !== '' && isset($s['qty'])) {
                     ProductSize::create([
                         'product_id' => $p->product_id,
-                        'size'       => $s['size'],
+                        'size'       => (string) $s['size'],
                         'qty'        => (int) $s['qty'],
                     ]);
                 }
             }
 
-            // Recompute stock
-            $p->update([
-                'stock' => (int) ProductSize::where('product_id', $p->product_id)->sum('qty')
-            ]);
+            // recompute stock if column exists
+            if (Schema::hasColumn('products', 'stock')) {
+                $p->update([
+                    'stock' => (int) ProductSize::where('product_id', $p->product_id)->sum('qty')
+                ]);
+            }
 
             return response()->json(['message' => 'Updated']);
         });
+    } catch (\Illuminate\Validation\ValidationException $ve) {
+        return response()->json(['message' => 'Validation failed', 'errors' => $ve->errors()], 422);
+    } catch (\Throwable $e) {
+        \Log::error('Product update failed', ['e' => $e]);
+        $msg = config('app.debug') ? $e->getMessage() : 'Server error';
+        return response()->json(['message' => "Update failed: $msg"], 500);
     }
+}
 
 
-    public function destroy(int $id)
-    {
+// ---------- DELETE ----------
+public function destroy(int $id)
+{
+    try {
         $p = Product::with('sizes')->find($id);
         if (!$p) return response()->json(['message' => 'Not found'], 404);
 
-        Storage::disk('public')->delete(array_filter([
+        // delete files
+        $paths = array_filter([
             $p->main_image, $p->view_image1, $p->view_image2, $p->view_image3, $p->view_image4
-        ]));
+        ]);
+        if (!empty($paths)) {
+            Storage::disk('public')->delete($paths);
+        }
+
         $p->sizes()->delete();
         $p->delete();
 
         return response()->json(['message' => 'Deleted']);
+    } catch (\Throwable $e) {
+        \Log::error('Product destroy failed', ['e' => $e]);
+        $msg = config('app.debug') ? $e->getMessage() : 'Server error';
+        return response()->json(['message' => "Delete failed: $msg"], 500);
     }
+}
 
-    private function parseSizes($raw): array
-    {
-        if (is_string($raw)) {
-            $decoded = json_decode($raw, true);
-            return is_array($decoded) ? $decoded : [];
-        }
-        return is_array($raw) ? $raw : [];
+
+// ---------- HELPER ----------
+private function parseSizes($raw): array
+{
+    if (is_string($raw)) {
+        $decoded = json_decode($raw, true);
+        return is_array($decoded) ? $decoded : [];
     }
-
+    return is_array($raw) ? $raw : [];
+}
 
 public function preview(\App\Models\Product $product)
 {

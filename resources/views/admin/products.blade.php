@@ -4,6 +4,9 @@
     <h2 class="font-semibold text-xl text-gray-800 leading-tight">Products</h2>
   </x-slot>
 
+  {{-- Needed so /admin/api-token mint can include X-CSRF-TOKEN --}}
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+
   <div class="py-6">
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
       <div class="p-6 space-y-6 bg-white shadow-sm sm:rounded-lg">
@@ -55,19 +58,16 @@
                     />
                   </td>
 
-                  {{-- INVENTORY: mobile 1-col; sm:3-col; lg:5-col; qty=0 in red --}}
+                  {{-- INVENTORY --}}
                   <td class="py-3 px-4">
                     @if($product->sizes && $product->sizes->count())
                       <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                         @foreach($product->sizes as $s)
                           @php $qty = (int) $s->qty; @endphp
-                          <span
-                            class="px-2 py-1 rounded text-xs border text-center
-                                   {{ $qty === 0
-                                       ? 'bg-red-50 text-red-700 border-red-300'
-                                       : 'bg-gray-100 text-gray-800 border-gray-300' }}">
-                            UK {{ $s->size }}:
-                            <span class="font-semibold">{{ $qty }}</span>
+                          <span class="px-2 py-1 rounded text-xs border text-center
+                            {{ $qty === 0 ? 'bg-red-50 text-red-700 border-red-300'
+                                          : 'bg-gray-100 text-gray-800 border-gray-300' }}">
+                            UK {{ $s->size }}: <span class="font-semibold">{{ $qty }}</span>
                           </span>
                         @endforeach
                       </div>
@@ -114,6 +114,14 @@
       </div>
     </div>
   </div>
+
+  {{-- Expose URLs to JS (used for any redirects if needed) --}}
+  <script>
+    window.__APP = Object.assign({}, window.__APP || {}, {
+      baseUrl: @js(url('/')),
+      adminProductsUrl: @js(route('admin.products')),
+    });
+  </script>
 
   @vite('resources/js/admin-products.js')
 </x-app-layout>

@@ -1,12 +1,75 @@
-// resources/js/user-cart.js
 // Confirm modal + toast (no alerts), remove item, and refresh DOM.
+// Uses Sanctum personal access token (Bearer) like product preview page.
 
+// ----------------------- App config helpers -----------------------
+const getMeta_uc = (name) => document.querySelector(`meta[name="${name}"]`)?.content || '';
+const APP_UC = {
+  baseUrl: (window.__APP?.baseUrl ||
+            getMeta_uc('app:base-url') ||
+            document.querySelector('base')?.href ||
+            window.location.origin).replace(/\/+$/, ''),
+  csrf: window.__APP?.csrf || getMeta_uc('csrf-token'),
+  isAuth: !!(window.__APP?.isAuth ?? (getMeta_uc('app:is-auth') === '1')),
+  registerUrl: window.__APP?.registerUrl || getMeta_uc('app:register-url') || '/register',
+};
+const api_uc = (p) => `${APP_UC.baseUrl}${p.startsWith('/') ? p : '/' + p}`;
+
+// ----------------------- Bearer token helpers -----------------------
+async function ensureCsrf_uc() {
+  if (!document.cookie.includes('XSRF-TOKEN=')) {
+    await fetch(api_uc('sanctum/csrf-cookie'), { credentials: 'include' });
+  }
+}
+async function mintCustomerToken_uc() {
+  await ensureCsrf_uc();
+  const res = await fetch(api_uc('/user/api-token'), {
+    method: 'POST',
+    headers: {
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-CSRF-TOKEN': APP_UC.csrf,
+      'Accept': 'application/json',
+    },
+    credentials: 'include',
+  });
+  if (!res.ok) {
+    let msg = 'Failed to mint customer token';
+    try { msg = (await res.json())?.message || msg; } catch {}
+    throw new Error(msg);
+  }
+  const data = await res.json();
+  window.__customerBearer = data?.token;
+  return window.__customerBearer;
+}
+async function getCustomerBearer_uc() {
+  if (window.__customerBearer) return window.__customerBearer;
+  return await mintCustomerToken_uc();
+}
+/** authedFetch — attaches Authorization: Bearer <token>, retries once on 401 */
+async function authedFetch_uc(input, init = {}, retry = true) {
+  const token = await getCustomerBearer_uc();
+  const headers = new Headers(init.headers || {});
+  headers.set('Authorization', `Bearer ${token}`);
+  headers.set('X-Requested-With', 'XMLHttpRequest');
+  headers.set('Accept', headers.get('Accept') || 'application/json');
+
+  const res = await fetch(input, { ...init, headers, cache: 'no-store' });
+  if (res.status === 401 && retry) {
+    window.__customerBearer = null; // rotate
+    await mintCustomerToken_uc();
+    return authedFetch_uc(input, init, /* retry */ false);
+  }
+  return res;
+}
+
+// expose for console if not defined elsewhere
+window.getCustomerBearer = window.getCustomerBearer || getCustomerBearer_uc;
+
+// ----------------------- Page init -----------------------
 document.addEventListener('DOMContentLoaded', () => {
   // nothing needed on load; functions are global
 });
 
-// Public API used by the Remove (✕) button in Blade
-// Only on the cart page, do a full page refresh after remove
+// ----------------------- Remove item (uses Bearer) -----------------------
 window.removeCartItem = async function (id) {
   const ok = await confirmBox(
     'Remove item?',
@@ -17,35 +80,28 @@ window.removeCartItem = async function (id) {
   if (!ok) return;
 
   try {
-    await ensureCsrf();
-    const res = await fetch(`/api/cart/${id}`, {
-      method: 'DELETE',
-      headers: {
-        Accept: 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-        'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'),
-      },
-      credentials: 'include',
-    });
+    const res = await authedFetch_uc(api_uc(`/api/cart/${id}`), { method: 'DELETE' });
 
     if (res.status === 401) { toast('Please sign in to manage your bag.', 'error'); return; }
     if (!res.ok) throw new Error('Remove failed');
 
     const data = await res.json();
 
-    // Update the nav badge immediately in this and other tabs (no page refresh needed for nav)
+    // Update nav badge + cross-tab
+    const newCount = Number(data?.count ?? 0);
     if (typeof window.broadcastCartCount === 'function') {
-      window.broadcastCartCount(data?.count ?? 0);
+      window.broadcastCartCount(newCount);
     }
+    document.dispatchEvent(new CustomEvent('cart:updated', { detail: { count: newCount } }));
 
-    // If we're on the cart page (cart.blade.php has #cartItems), refresh the whole page
+    // If we're on the cart page, refresh the whole page (keeps totals/taxes honest)
     if (document.getElementById('cartItems')) {
       toast('Item removed from your bag.', 'success');
       setTimeout(() => location.reload(), 250);
       return;
     }
 
-    // Elsewhere (if you ever call remove outside the cart page), fall back to DOM refresh
+    // Elsewhere, refresh the DOM block
     toast('Item removed from your bag.', 'success');
     await refreshCartDom();
   } catch (e) {
@@ -54,10 +110,9 @@ window.removeCartItem = async function (id) {
   }
 };
 
-
-// ---------- Refresh DOM after changes ----------
+// ----------------------- Refresh DOM after changes -----------------------
 async function refreshCartDom() {
-  const full = await fetchJson('/api/cart/full');
+  const full = await fetchJsonAuthed_uc('/api/cart/full');
 
   // Items
   const wrap = document.getElementById('cartItems');
@@ -69,13 +124,13 @@ async function refreshCartDom() {
       wrap.innerHTML = full.items.map(it => `
         <div class="border rounded-lg grid grid-cols-12">
           <div class="col-span-12 sm:col-span-3 bg-gray-100 p-4 flex items-center justify-center">
-            <img src="${escapeHtml(it.img || '')}" alt="" class="max-h-32 object-contain">
+            <img src="${escapeHtml_uc(it.img || '')}" alt="" class="max-h-32 object-contain">
           </div>
           <div class="col-span-12 sm:col-span-9 p-4">
             <div class="flex items-start justify-between gap-3">
               <div>
-                <div class="font-semibold text-lg leading-6">${escapeHtml(it.name)}</div>
-                <div class="text-gray-600 text-sm mt-1">SIZE: ${escapeHtml(it.size)}</div>
+                <div class="font-semibold text-lg leading-6">${escapeHtml_uc(it.name)}</div>
+                <div class="text-gray-600 text-sm mt-1">SIZE: ${escapeHtml_uc(it.size)}</div>
                 <div class="text-gray-600 text-sm">QTY: ${Number(it.quantity)}</div>
               </div>
               <div class="text-right">
@@ -117,7 +172,12 @@ async function refreshCartDom() {
   }
 }
 
-// ---------- Confirm modal (centered) ----------
+// ----------------------- Small helpers -----------------------
+async function fetchJsonAuthed_uc(path) {
+  const res = await authedFetch_uc(api_uc(path));
+  if (!res.ok) throw new Error('Network error');
+  return res.json();
+}
 function confirmBox(title, message, okText = 'OK', cancelText = 'Cancel') {
   return new Promise(resolve => {
     let overlay = document.getElementById('x-confirm');
@@ -170,8 +230,6 @@ function confirmBox(title, message, okText = 'OK', cancelText = 'Cancel') {
     okBtn.focus();
   });
 }
-
-// ---------- Toast (top-center) ----------
 function toast(msg, variant = 'info', ms = 2200) {
   let c = document.getElementById('x-toast');
   if (!c) {
@@ -181,7 +239,6 @@ function toast(msg, variant = 'info', ms = 2200) {
       'fixed top-4 left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-2 w-full max-w-md pointer-events-none';
     document.body.appendChild(c);
   }
-
   const tone =
     variant === 'success'
       ? 'bg-green-50 text-green-800 border-green-200'
@@ -201,38 +258,12 @@ function toast(msg, variant = 'info', ms = 2200) {
     t.style.opacity = '1';
     t.style.transform = 'translateY(0)';
   });
-
   setTimeout(() => {
     t.style.opacity = '0';
     t.style.transform = 'translateY(4px)';
     setTimeout(() => t.remove(), 200);
   }, ms);
 }
-
-// ---------- Fetch helpers ----------
-async function fetchJson(url) {
-  await ensureCsrf();
-  const res = await fetch(url, {
-    headers: {
-      Accept: 'application/json',
-      'X-Requested-With': 'XMLHttpRequest',
-      'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'),
-    },
-    credentials: 'include',
-  });
-  if (!res.ok) throw new Error('Network error');
-  return res.json();
-}
-
-async function ensureCsrf() {
-  if (!getCookie('XSRF-TOKEN')) {
-    await fetch('/sanctum/csrf-cookie', { credentials: 'include' });
-  }
-}
-function getCookie(name) {
-  const m = document.cookie.split('; ').find(r => r.startsWith(name + '='));
-  return m ? decodeURIComponent(m.split('=')[1]) : null;
-}
-function escapeHtml(s) {
+function escapeHtml_uc(s) {
   return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 }

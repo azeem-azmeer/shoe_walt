@@ -9,18 +9,16 @@ use App\Http\Controllers\{
     CheckoutController,
     OrderController
 };
+use App\Http\Controllers\Admin\AuthTokenController;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-| Notes:
-| - The Firebase auth POST lives here for convenience; consider moving it to
-|   routes/api.php if you’d prefer a pure-API endpoint.
-| - Customer pages require web auth (session-based).
-| - Admin pages require auth + verified + admin.
-*/
+use App\Http\Controllers\UserTokenController;
 
+Route::middleware(['auth'])->post('/user/api-token', [UserTokenController::class, 'mint'])
+    ->name('user.api-token');
+
+
+Route::post('/user/api-token', [UserTokenController::class, 'mint'])
+    ->middleware(['auth']); // session-authenticated user mints a Sanctum PAT
 /*=========================
 =       Auth (web)        =
 =========================*/
@@ -89,6 +87,10 @@ Route::middleware(['auth', 'verified'])->get('/dashboard', function () {
 Route::middleware(['auth', 'verified', 'admin'])
     ->prefix('admin')->name('admin.')
     ->group(function () {
+
+        Route::post('/api-token', [AuthTokenController::class, 'mint'])
+        ->name('api-token');
+
         Route::view('/dashboard', 'admin.dashboard')->name('dashboard');
 
         // Products
