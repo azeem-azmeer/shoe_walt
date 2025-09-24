@@ -14,7 +14,7 @@
         </div>
 
         <div class="flex flex-wrap items-end gap-3">
-          {{-- Status filter --}}
+          {{-- Status filter (keep) --}}
           <div>
             <label class="block text-xs text-gray-600 mb-1">Status</label>
             <select wire:model.live="status" class="rounded-xl border px-3 py-2 focus:ring-2 focus:ring-indigo-500/60">
@@ -25,7 +25,7 @@
             </select>
           </div>
 
-          {{-- Search --}}
+          {{-- Search (keep) --}}
           <form wire:submit.prevent="go" class="flex items-end gap-2">
             <div>
               <label class="block text-xs text-gray-600 mb-1">Search</label>
@@ -52,7 +52,17 @@
             </button>
           </form>
 
-          {{-- Per page --}}
+          {{-- NEW: Single calendar day --}}
+          <div>
+            <label class="block text-xs text-gray-600 mb-1">Date</label>
+            <input type="date"
+                   wire:model.live="onDate"
+                   class="rounded-xl border px-3 py-2 focus:ring-2 focus:ring-indigo-500/60" />
+          </div>
+
+          
+
+          {{-- Per page (keep) --}}
           <div>
             <label class="block text-xs text-gray-600 mb-1">Per Page</label>
             <select wire:model.live="perPage" class="rounded-xl border px-3 py-2 focus:ring-2 focus:ring-indigo-500/60">
@@ -63,6 +73,15 @@
           </div>
         </div>
       </div>
+
+      {{-- Active date chip (optional) --}}
+      @if($onDate)
+        <div class="mt-3 text-xs text-gray-600">
+          <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100">
+            Date: {{ $onDate }}
+          </span>
+        </div>
+      @endif
     </div>
 
     {{-- Table / Empty --}}
@@ -75,7 +94,7 @@
           </svg>
         </div>
         <p class="text-gray-700 text-lg font-medium">No orders found</p>
-        <p class="text-gray-500 text-sm mt-1">Try adjusting filters or your search.</p>
+        <p class="text-gray-500 text-sm mt-1">Try a different date, status, or search.</p>
       </div>
     @else
       <div class="bg-white/95 backdrop-blur border rounded-2xl shadow overflow-hidden">

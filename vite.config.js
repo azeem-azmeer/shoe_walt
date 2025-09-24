@@ -17,6 +17,7 @@ export default defineConfig({
         'resources/js/admin-product-edit.js',
         'resources/js/user-cart.js',
         'resources/js/user-review.js',
+        'resources/js/user-checkout.js',
       ],
       refresh: true,
     }),

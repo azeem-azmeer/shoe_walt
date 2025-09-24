@@ -35,7 +35,8 @@
       </div>
     @endif
 
-    <form method="POST" action="{{ route('user.checkout.store') }}" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <form id="checkoutForm" method="POST" action="{{ route('user.checkout.store') }}" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
       @csrf
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -206,9 +207,10 @@
 
               {{-- Submit --}}
               <button type="submit"
-                      class="mt-5 w-full text-center px-5 py-3 rounded-xl font-bold text-white bg-gray-900 hover:bg-black transition shadow">
+                class="mt-5 w-full text-center px-5 py-3 rounded-xl font-bold text-white bg-gray-900 hover:bg-black transition shadow">
                 PLACE ORDER
               </button>
+
 
               <p class="text-xs text-gray-500 mt-2">* Tax shown is an estimate.</p>
             </div>
@@ -218,5 +220,7 @@
     </form>
   </div>
 
+  
+  @vite('resources/js/user-checkout.js')
   @include('user.footer')
 </x-app-layout>

@@ -13,19 +13,24 @@ class OrdersTable extends Component
 
     protected string $paginationTheme = 'tailwind';
 
-    // Filters
+    // Existing filters
     public string $status = '';
     public string $q = '';
     public int $perPage = 20;
 
-    // Allowed statuses (matches your DB enum)
+    // NEW: single day picker (YYYY-MM-DD) and sort direction
+    public ?string $onDate = null;     // one calendar day
+    public string $sortDir = 'desc';   // 'desc' (newest first) | 'asc' (oldest first)
+
     private const ALLOWED = ['Pending', 'Confirmed', 'Cancelled'];
 
-    // Persist filters in the URL
+    // Persist filters in URL
     protected $queryString = [
         'status'  => ['except' => ''],
         'q'       => ['except' => ''],
         'perPage' => ['except' => 20],
+        'onDate'  => ['except' => null],
+        'sortDir' => ['except' => 'desc'],
         'page'    => ['except' => 1],
     ];
 
@@ -40,6 +45,8 @@ class OrdersTable extends Component
     // Reset pagination when filters change
     public function updatingStatus(): void { $this->resetPage(); }
     public function updatedPerPage(): void { $this->resetPage(); }
+    public function updatedOnDate(): void  { $this->resetPage(); }
+    public function updatedSortDir(): void { $this->resetPage(); }
 
     /** Triggered by Enter key / Search button */
     public function go(): void
@@ -82,9 +89,13 @@ class OrdersTable extends Component
                     );
                 });
             })
-            ->latest()
+            // NEW: single calendar day filter
+            ->when($this->onDate, fn ($q) => $q->whereDate('created_at', $this->onDate))
+            // NEW: sort direction
+            ->orderBy('id', $this->sortDir === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
+        // keep this same as your current UI
         $orderCount = Order::count();
 
         return view('livewire.admin.orders-table', compact('orders', 'orderCount'));

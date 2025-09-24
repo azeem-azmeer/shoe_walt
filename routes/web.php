@@ -13,8 +13,6 @@ use App\Http\Controllers\Admin\AuthTokenController;
 
 use App\Http\Controllers\UserTokenController;
 
-Route::middleware(['auth'])->post('/user/api-token', [UserTokenController::class, 'mint'])
-    ->name('user.api-token');
 
 
 Route::post('/user/api-token', [UserTokenController::class, 'mint'])

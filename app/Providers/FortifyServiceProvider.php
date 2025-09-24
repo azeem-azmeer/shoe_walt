@@ -15,6 +15,9 @@ use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Fortify;
 use Laravel\Fortify\Contracts\LoginResponse as LoginResponseContract;
 use App\Http\Responses\LoginResponse;
+use Laravel\Fortify\Contracts\RegisterResponse;
+use App\Http\Responses\LoginResponse as CustomLoginResponse;
+use App\Http\Responses\RegisterResponse as CustomRegisterResponse;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -23,7 +26,8 @@ class FortifyServiceProvider extends ServiceProvider
      */
 public function register()
 {
-    $this->app->singleton(LoginResponseContract::class, LoginResponse::class);
+    $this->app->singleton(LoginResponse::class, CustomLoginResponse::class);
+        $this->app->singleton(RegisterResponse::class, CustomRegisterResponse::class);
 }
 
     /**
