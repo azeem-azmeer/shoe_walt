@@ -80,17 +80,19 @@ class Product extends Model
             ->all();
 
         if (empty($images)) {
-            $images = [
-                $product->main_image
-                    ? \Storage::url($product->main_image)
-                    : asset('storage/products/placeholder.png'),
-            ];
-        }
+    // Fall back to a single URL (not an <img> tag)
+    $images = [
+        $product->main_image
+            ? Storage::url($product->main_image)           // -> "/storage/products/xxx.webp"
+            : asset('storage/products/placeholder.png'),   // fallback placeholder
+    ];
+}
 
         // Sizes for Blade
         $sizes = $product->sizes
             ->map(fn($s) => [
                 'label'    => (string) $s->size,
+
                 'qty'      => (int) $s->qty,
                 'disabled' => (int) $s->qty <= 0,
             ])

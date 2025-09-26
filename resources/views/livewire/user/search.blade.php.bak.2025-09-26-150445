@@ -1,6 +1,6 @@
 <div class="relative shrink-0"><!-- single root -->
 
-  {{-- =================== Desktop pill + suggestions =================== --}}
+  {{-- Desktop pill + suggestions --}}
   <div class="relative hidden sm:block" x-data @click.outside="$wire.clear()">
     <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400"
          viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -11,8 +11,7 @@
     <input
       type="search"
       placeholder="Search"
-      class="pl-10 pr-9 py-2 w-56 md:w-80 rounded-full border border-gray-200 
-             focus:outline-none focus:ring-2 focus:ring-gray-300"
+      class="pl-10 pr-9 py-2 w-56 md:w-80 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-300"
       wire:model.debounce.250ms="q"
       wire:keydown.arrow-down.prevent="move(1)"
       wire:keydown.arrow-up.prevent="move(-1)"
@@ -25,8 +24,7 @@
 
     @if($open && count($results))
       <ul id="search-suggestions-desktop"
-          class="absolute z-50 mt-2 w-[18rem] md:w-[22rem] bg-white border rounded-xl 
-                 shadow-lg overflow-hidden">
+          class="absolute z-50 mt-2 w-[18rem] md:w-[22rem] bg-white border rounded-xl shadow-lg overflow-hidden">
         @foreach($results as $i => $r)
           <li wire:key="desk-{{ $i }}" class="{{ $highlight === $i ? 'bg-gray-100' : '' }}">
             <a href="{{ $r['url'] }}" wire:click.prevent="go({{ $i }})"
@@ -45,7 +43,7 @@
     @endif
   </div>
 
-  {{-- =================== Mobile trigger =================== --}}
+  {{-- Mobile trigger --}}
   <button type="button"
           class="sm:hidden inline-flex items-center justify-center h-9 w-9 rounded-full hover:bg-gray-100"
           aria-label="Search" wire:click="openMobile">
@@ -55,26 +53,23 @@
     </svg>
   </button>
 
-  {{-- =================== Mobile full-screen overlay =================== --}}
+  {{-- Mobile full-screen overlay --}}
   @if($showMobile)
     <div class="fixed inset-0 z-50 bg-white flex flex-col">
-      {{-- Header --}}
       <div class="flex items-center gap-2 px-3 py-3 border-b">
         <button type="button" class="h-9 w-9 rounded-full hover:bg-gray-100"
                 aria-label="Back" wire:click="closeMobile">←</button>
 
         <div class="relative flex-1">
-          <input id="mobileSearchInput" type="search" placeholder="Search products…"
-                 class="w-full rounded-full border border-gray-200 pl-4 pr-9 py-2 
-                        focus:outline-none focus:ring-2 focus:ring-gray-300"
-                 wire:model.live.debounce.300ms="q"
-                 wire:keydown.enter.prevent="go" />
+          <input id="mobileSearchInput" type="search" placeholder="Search products"
+                 class="w-full rounded-full border border-gray-200 pl-4 pr-9 py-2 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                 wire:model.debounce.250ms="q" />
+          {{-- keep ONLY the native clear (circled) --}}
         </div>
 
         <button type="button" class="text-sm text-gray-600" wire:click="closeMobile">Cancel</button>
       </div>
 
-      {{-- Results --}}
       <div class="p-3 overflow-y-auto">
         @if(count($results))
           <div class="grid grid-cols-2 gap-3">

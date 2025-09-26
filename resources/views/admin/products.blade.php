@@ -4,7 +4,6 @@
     <h2 class="font-semibold text-xl text-gray-800 leading-tight">Products</h2>
   </x-slot>
 
-  {{-- Needed so /admin/api-token mint can include X-CSRF-TOKEN --}}
   <meta name="csrf-token" content="{{ csrf_token() }}">
 
   <div class="py-6">
@@ -20,7 +19,78 @@
         {{-- Livewire filters (search + category only) --}}
         <livewire:admin.product-filters />
 
-        <div class="overflow-x-auto bg-white rounded-lg shadow-lg">
+        {{-- MOBILE LIST (cards) --}}
+          <div class="sm:hidden space-y-3">
+            @forelse ($products as $product)
+              <div class="bg-white rounded-xl border shadow p-4">
+                <div class="flex items-center gap-3">
+                  @if($product->main_image)
+                    <img src="{{ asset('storage/'.$product->main_image) }}"
+                        class="w-14 h-14 object-cover rounded-md border" alt="">
+                  @else
+                    <div class="w-14 h-14 rounded-md bg-gray-100 flex items-center justify-center text-gray-400">?</div>
+                  @endif
+                  <div class="flex-1 min-w-0">
+                    <div class="font-semibold text-gray-900 truncate">{{ $product->product_name }}</div>
+                    <div class="text-xs text-gray-500">{{ (int)($product->sold_pieces ?? 0) }} Sold</div>
+                  </div>
+                </div>
+
+                <div class="mt-3 flex flex-wrap gap-2 text-xs">
+                  {{-- Status toggle --}}
+                  <livewire:admin.status-toggle
+                    :product-id="$product->product_id"
+                    :status="$product->status"
+                    wire:key="st-m-{{ $product->product_id }}"
+                  />
+
+                  {{-- Category --}}
+                  <span class="px-2 py-1 rounded-full
+                    @if($product->category === 'Men') bg-blue-100 text-blue-700
+                    @elseif($product->category === 'Women') bg-pink-100 text-pink-700
+                    @elseif($product->category === 'Kids') bg-purple-100 text-purple-700
+                    @else bg-gray-100 text-gray-600 @endif">
+                    {{ $product->category }}
+                  </span>
+                </div>
+
+                {{-- Inventory --}}
+                <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+                  @if($product->sizes && $product->sizes->count())
+                    @foreach($product->sizes as $s)
+                      @php $qty = (int) $s->qty; @endphp
+                      <span class="px-2 py-1 rounded border text-center
+                        {{ $qty === 0 ? 'bg-red-50 text-red-700 border-red-300'
+                                      : 'bg-gray-100 text-gray-800 border-gray-300' }}">
+                        UK {{ $s->size }}: <b>{{ $qty }}</b>
+                      </span>
+                    @endforeach
+                  @else
+                    <span class="text-gray-400">No sizes</span>
+                  @endif
+                </div>
+
+                {{-- Action buttons: Edit + Delete --}}
+                <div class="mt-3 flex justify-end gap-2">
+                  <a href="{{ route('admin.products.edit', $product->product_id) }}"
+                    class="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 text-xs shadow">
+                    Edit
+                  </a>
+                  <button type="button"
+                          onclick="deleteProduct({{ $product->product_id }})"
+                          class="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600 text-xs shadow">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            @empty
+              <div class="text-center text-gray-500 py-6">No products found.</div>
+            @endforelse
+          </div>
+
+
+        {{-- ===== DESKTOP TABLE ===== --}}
+        <div class="hidden sm:block overflow-x-auto bg-white rounded-lg shadow-lg">
           <table class="min-w-full text-sm">
             <thead class="bg-gray-100 border-b text-gray-700">
               <tr>
@@ -44,12 +114,8 @@
                       <div class="w-14 h-14 rounded-md bg-gray-100 flex items-center justify-center text-gray-400">?</div>
                     @endif
                   </td>
-
                   <td class="py-3 px-4 font-medium text-gray-900">{{ $product->product_name }}</td>
-
                   <td class="py-3 px-4 text-gray-600">{{ (int)($product->sold_pieces ?? 0) }} Sold</td>
-
-                  {{-- Livewire Status Toggle --}}
                   <td class="py-3 px-4">
                     <livewire:admin.status-toggle
                       :product-id="$product->product_id"
@@ -57,8 +123,6 @@
                       wire:key="st-{{ $product->product_id }}"
                     />
                   </td>
-
-                  {{-- INVENTORY --}}
                   <td class="py-3 px-4">
                     @if($product->sizes && $product->sizes->count())
                       <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-2">
@@ -75,7 +139,6 @@
                       <span class="text-gray-400">No sizes</span>
                     @endif
                   </td>
-
                   <td class="py-3 px-4">
                     <span class="px-3 py-1 text-xs rounded-full
                       @if($product->category === 'Men') bg-blue-100 text-blue-700
@@ -85,17 +148,12 @@
                       {{ $product->category }}
                     </span>
                   </td>
-
                   <td class="py-3 px-4 text-right space-x-2">
                     <a href="{{ route('admin.products.edit', $product->product_id) }}"
-                       class="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 text-xs shadow">
-                      Edit
-                    </a>
+                       class="px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 text-xs shadow">Edit</a>
                     <button type="button"
                             onclick="deleteProduct({{ $product->product_id }})"
-                            class="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600 text-xs shadow">
-                      Delete
-                    </button>
+                            class="px-3 py-1 rounded bg-red-500 text-white hover:bg-red-600 text-xs shadow">Delete</button>
                   </td>
                 </tr>
               @empty
@@ -115,7 +173,6 @@
     </div>
   </div>
 
-  {{-- Expose URLs to JS (used for any redirects if needed) --}}
   <script>
     window.__APP = Object.assign({}, window.__APP || {}, {
       baseUrl: @js(url('/')),

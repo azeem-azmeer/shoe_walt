@@ -6,18 +6,25 @@
     {{-- Header + Filters --}}
     <div class="rounded-2xl bg-white/90 backdrop-blur shadow-lg p-6">
       <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+        
+        {{-- Title --}}
         <div>
           <h1 class="text-3xl font-extrabold tracking-tight text-gray-900">
             All Orders <span class="text-gray-500">({{ number_format($orderCount) }})</span>
           </h1>
-          <p class="text-sm text-gray-600 mt-1">Showing latest orders placed by all customers.</p>
+          <p class="text-sm text-gray-600 mt-1">
+            Showing latest orders placed by all customers.
+          </p>
         </div>
 
+        {{-- Filters --}}
         <div class="flex flex-wrap items-end gap-3">
-          {{-- Status filter (keep) --}}
+
+          {{-- Status filter --}}
           <div>
             <label class="block text-xs text-gray-600 mb-1">Status</label>
-            <select wire:model.live="status" class="rounded-xl border px-3 py-2 focus:ring-2 focus:ring-indigo-500/60">
+            <select wire:model.live="status"
+                    class="rounded-xl border px-3 py-2 focus:ring-2 focus:ring-indigo-500/60">
               <option value="">Any</option>
               @foreach(['Pending','Confirmed','Cancelled'] as $opt)
                 <option value="{{ $opt }}">{{ $opt }}</option>
@@ -25,9 +32,10 @@
             </select>
           </div>
 
-          {{-- Search (keep) --}}
-          <form wire:submit.prevent="go" class="flex items-end gap-2">
-            <div>
+          
+          {{-- Search --}}
+          <form wire:submit.prevent="go" class="flex flex-col sm:flex-row items-start sm:items-end gap-2">
+            <div class="w-full sm:w-auto">
               <label class="block text-xs text-gray-600 mb-1">Search</label>
               <div class="relative">
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -36,23 +44,24 @@
                     <path d="M20 20l-3-3" stroke-width="1.5"></path>
                   </svg>
                 </span>
-                <input
-                  type="search"
-                  wire:model.defer="q"
-                  placeholder="Order #, email, name"
-                  class="w-72 rounded-xl border px-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/60"
-                  aria-label="Search orders"
-                  @keydown.enter.stop
-                />
+                <input type="search"
+                      wire:model.defer="q"
+                      placeholder="Order #, email, name"
+                      class="w-full sm:w-72 rounded-xl border px-9 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/60"
+                      aria-label="Search orders"
+                      @keydown.enter.stop />
               </div>
             </div>
+
+            {{-- Button always goes below on mobile, side-by-side on desktop --}}
             <button type="submit"
-                    class="h-[38px] px-4 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-black shadow">
+                    class="w-full sm:w-auto h-[38px] px-4 rounded-xl bg-gray-900 text-white text-sm font-semibold hover:bg-black shadow">
               Search
             </button>
           </form>
 
-          {{-- NEW: Single calendar day --}}
+
+          {{-- Date --}}
           <div>
             <label class="block text-xs text-gray-600 mb-1">Date</label>
             <input type="date"
@@ -60,12 +69,11 @@
                    class="rounded-xl border px-3 py-2 focus:ring-2 focus:ring-indigo-500/60" />
           </div>
 
-          
-
-          {{-- Per page (keep) --}}
+          {{-- Per page --}}
           <div>
             <label class="block text-xs text-gray-600 mb-1">Per Page</label>
-            <select wire:model.live="perPage" class="rounded-xl border px-3 py-2 focus:ring-2 focus:ring-indigo-500/60">
+            <select wire:model.live="perPage"
+                    class="rounded-xl border px-3 py-2 focus:ring-2 focus:ring-indigo-500/60">
               @foreach([10,20,30,50,100] as $n)
                 <option value="{{ $n }}">{{ $n }}</option>
               @endforeach
@@ -74,7 +82,7 @@
         </div>
       </div>
 
-      {{-- Active date chip (optional) --}}
+      {{-- Active date chip --}}
       @if($onDate)
         <div class="mt-3 text-xs text-gray-600">
           <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100">
@@ -84,8 +92,9 @@
       @endif
     </div>
 
-    {{-- Table / Empty --}}
+    {{-- Orders List --}}
     @if($orders->isEmpty())
+      {{-- Empty state --}}
       <div class="bg-white/90 backdrop-blur border rounded-2xl shadow p-10 text-center">
         <div class="mx-auto mb-4 h-14 w-14 rounded-2xl bg-gray-100 flex items-center justify-center">
           <svg class="h-7 w-7 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -96,8 +105,62 @@
         <p class="text-gray-700 text-lg font-medium">No orders found</p>
         <p class="text-gray-500 text-sm mt-1">Try a different date, status, or search.</p>
       </div>
+
     @else
-      <div class="bg-white/95 backdrop-blur border rounded-2xl shadow overflow-hidden">
+
+      {{-- ===== MOBILE: card list (< sm) ===== --}}
+      <div class="sm:hidden space-y-3">
+        @foreach($orders as $order)
+          <div class="bg-white/95 backdrop-blur border rounded-2xl shadow p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-sm font-semibold text-gray-900">#{{ $order->id }}</div>
+                <div class="text-xs text-gray-600">
+                  {{ $order->created_at->format('M d, Y h:i A') }}
+                </div>
+              </div>
+              <a href="{{ route('user.orders.show', $order->id) }}"
+                 class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-700 shadow-sm">
+                View
+              </a>
+            </div>
+
+            <div class="mt-3 flex items-center gap-3">
+              @php $initial = mb_strtoupper(mb_substr($order->user->name ?? 'U', 0, 1)); @endphp
+              <div class="h-8 w-8 rounded-full bg-indigo-600/10 text-indigo-700 text-sm font-bold grid place-items-center">
+                {{ $initial }}
+              </div>
+              <div class="min-w-0">
+                <div class="text-sm font-semibold truncate">{{ $order->user->name ?? '—' }}</div>
+                <div class="text-[11px] text-gray-500 truncate">{{ $order->user->email ?? '—' }}</div>
+              </div>
+            </div>
+
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <span class="text-sm text-gray-800">Items: <b>{{ $order->items_count }}</b></span>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-800 text-xs font-semibold">
+                ${{ number_format($order->total ?? 0, 2) }}
+              </span>
+
+              <select class="ml-auto rounded-lg border px-2 py-1 text-xs font-semibold focus:ring-2 focus:ring-indigo-500/60"
+                      wire:change="updateStatus({{ $order->id }}, $event.target.value)">
+                @foreach(['Pending','Confirmed','Cancelled'] as $opt)
+                  <option value="{{ $opt }}" @selected($order->status === $opt)>{{ $opt }}</option>
+                @endforeach
+              </select>
+            </div>
+          </div>
+        @endforeach
+
+        <div class="pt-2">
+          <div class="flex justify-center">
+            {{ $orders->links() }}
+          </div>
+        </div>
+      </div>
+
+      {{-- ===== DESKTOP: table (≥ sm) ===== --}}
+      <div class="hidden sm:block bg-white/95 backdrop-blur border rounded-2xl shadow overflow-hidden">
         <div class="overflow-x-auto">
           <table class="min-w-full text-sm">
             <thead class="bg-gray-100 text-gray-700 uppercase text-xs font-semibold sticky top-0 z-10">
@@ -115,9 +178,7 @@
               @foreach($orders as $order)
                 <tr class="hover:bg-gray-50 transition" wire:key="order-{{ $order->id }}">
                   <td class="px-4 py-3 font-semibold text-gray-900">#{{ $order->id }}</td>
-                  <td class="px-4 py-3 text-gray-700">
-                    {{ $order->created_at->format('M d, Y h:i A') }}
-                  </td>
+                  <td class="px-4 py-3 text-gray-700">{{ $order->created_at->format('M d, Y h:i A') }}</td>
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-3">
                       @php $initial = mb_strtoupper(mb_substr($order->user->name ?? 'U', 0, 1)); @endphp
@@ -133,17 +194,13 @@
                   <td class="px-4 py-3 text-gray-800">{{ $order->items_count }}</td>
                   <td class="px-4 py-3">
                     <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-800 font-semibold">
-                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M12 1v22M7 7c0-2 2.2-3.5 5-3.5S17 5 17 7s-2.2 3.5-5 3.5S7 9 7 7Z" stroke-width="1.5"/>
-                      </svg>
                       ${{ number_format($order->total ?? 0, 2) }}
                     </span>
                   </td>
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-2">
-                      <select
-                        class="rounded-lg border px-2 py-1 text-xs font-semibold focus:ring-2 focus:ring-indigo-500/60"
-                        wire:change="updateStatus({{ $order->id }}, $event.target.value)">
+                      <select class="rounded-lg border px-2 py-1 text-xs font-semibold focus:ring-2 focus:ring-indigo-500/60"
+                              wire:change="updateStatus({{ $order->id }}, $event.target.value)">
                         @foreach(['Pending','Confirmed','Cancelled'] as $opt)
                           <option value="{{ $opt }}" @selected($order->status === $opt)>{{ $opt }}</option>
                         @endforeach
@@ -177,6 +234,7 @@
           </div>
         </div>
       </div>
+
     @endif
   </div>
 </div>

@@ -54,18 +54,19 @@
     </div>
   </div>
 
-  {{-- ===== Filters ===== --}}
+  {{-- ===== Filters (mobile-friendly, desktop unchanged behavior) ===== --}}
   <div class="flex flex-wrap gap-3 items-end mb-4">
-    <div>
+    <div class="w-full sm:w-auto">
       <label class="block text-xs text-gray-500 mb-1">Search</label>
       <input type="text" wire:model.debounce.400ms="search"
-             class="border rounded-lg px-3 py-2 w-56 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+             class="border rounded-lg px-3 py-2 w-full sm:w-56 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
              placeholder="feedback…">
     </div>
 
-    <div>
+    <div class="w-full sm:w-auto">
       <label class="block text-xs text-gray-500 mb-1">Rating</label>
-      <select wire:model="rating" class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
+      <select wire:model="rating"
+              class="border rounded-lg px-3 py-2 w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-gray-900/10">
         <option value="">Any</option>
         @for($i=1;$i<=5;$i++)
           <option value="{{ $i }}">{{ $i }}★</option>
@@ -73,37 +74,82 @@
       </select>
     </div>
 
-    <div>
+    <div class="w-full sm:w-auto">
       <label class="block text-xs text-gray-500 mb-1">Order ID</label>
       <input type="number" wire:model.defer="orderId"
-             class="border rounded-lg px-3 py-2 w-28 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
+             class="border rounded-lg px-3 py-2 w-full sm:w-28 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+             placeholder="e.g. 12345">
     </div>
 
-    <div>
+    <div class="w-full sm:w-auto">
       <label class="block text-xs text-gray-500 mb-1">User ID</label>
       <input type="number" wire:model.defer="userId"
-             class="border rounded-lg px-3 py-2 w-28 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
+             class="border rounded-lg px-3 py-2 w-full sm:w-28 focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+             placeholder="e.g. 987">
     </div>
 
-    <div>
+    <div class="w-full sm:w-auto">
       <label class="block text-xs text-gray-500 mb-1">From</label>
-      <input type="date" wire:model="from"
-             class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
+      <input type="date" wire:model.lazy="from"
+             class="border rounded-lg px-3 py-2 w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-gray-900/10">
     </div>
-    <div>
+    <div class="w-full sm:w-auto">
       <label class="block text-xs text-gray-500 mb-1">To</label>
-      <input type="date" wire:model="to"
-             class="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gray-900/10">
+      <input type="date" wire:model.lazy="to"
+             class="border rounded-lg px-3 py-2 w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-gray-900/10">
     </div>
 
-    <button wire:click="$refresh"
-            class="ml-auto px-3 py-2 border rounded-lg hover:bg-gray-50 transition">
-      Refresh
-    </button>
+    <div class="w-full sm:w-auto sm:ml-auto">
+      <button wire:click="$refresh"
+              class="w-full sm:w-auto px-3 py-2 border rounded-lg hover:bg-gray-50 transition">
+        Refresh
+      </button>
+    </div>
   </div>
 
-  {{-- ===== Table ===== --}}
-  <div class="overflow-hidden border rounded-xl">
+  {{-- ===== MOBILE: card list (visible < sm) ===== --}}
+  <div class="sm:hidden space-y-3">
+    @foreach ($rows as $r)
+      @php
+        $score = (int)($r->rating ?? 0);
+        $dt = $r->created_at ?? null;
+        if ($dt instanceof \MongoDB\BSON\UTCDateTime) { $dt = $dt->toDateTime(); }
+        elseif (is_string($dt)) { try { $dt = \Carbon\Carbon::parse($dt); } catch (\Throwable $e) { $dt = null; } }
+        $displayDate = ($dt instanceof \DateTimeInterface)
+            ? \Carbon\Carbon::instance($dt)->setTimezone(config('app.timezone'))->format('Y-m-d H:i')
+            : '—';
+      @endphp
+      <div class="bg-white border rounded-xl shadow p-4">
+        <div class="flex justify-between items-start gap-3">
+          <div class="text-sm text-gray-700">
+            <div class="font-semibold">User #{{ $r->user_id }}</div>
+            <div class="text-xs">Order #{{ $r->order_id }}</div>
+            <div class="text-xs text-gray-500">{{ $displayDate }}</div>
+          </div>
+          <button class="text-red-600 text-xs hover:bg-red-50 px-2 py-1 rounded"
+                  wire:click="confirmDelete('{{ (string)($r->_id ?? $r->id) }}')">
+            Delete
+          </button>
+        </div>
+
+        <div class="mt-2 text-yellow-500 text-sm">
+          {{ str_repeat('★', $score) }}<span class="text-gray-300">{{ str_repeat('☆', 5 - $score) }}</span>
+          <span class="ml-2 text-xs text-gray-600">({{ $score }}/5)</span>
+        </div>
+
+        <div class="mt-2 text-sm text-gray-800">
+          {{ $r->feedback }}
+        </div>
+      </div>
+    @endforeach
+
+    <div class="pt-2">
+      {{ $rows->links() }}
+    </div>
+  </div>
+
+  {{-- ===== DESKTOP: table (visible ≥ sm) — unchanged structure ===== --}}
+  <div class="hidden sm:block overflow-hidden border rounded-xl">
     <div class="overflow-x-auto">
       <table class="min-w-full text-sm">
         <thead class="bg-gray-50 text-gray-600 sticky top-0 z-10">
@@ -130,13 +176,19 @@
               $score = (int)($r->rating ?? 0);
               $chip = $score >= 4
                       ? 'bg-emerald-100 text-emerald-700'
-                      : ($score === 3 ? 'bg-amber-100 text-amber-700'
-                                      : 'bg-rose-100 text-rose-700');
+                      : ($score === 3 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700');
+              $dt = $r->created_at ?? null;
+              if ($dt instanceof \MongoDB\BSON\UTCDateTime) {
+                  $dt = $dt->toDateTime();
+              } elseif (is_string($dt)) {
+                  try { $dt = \Carbon\Carbon::parse($dt); } catch (\Throwable $e) { $dt = null; }
+              }
+              $displayDate = ($dt instanceof \DateTimeInterface)
+                  ? \Carbon\Carbon::instance($dt)->setTimezone(config('app.timezone'))->format('Y-m-d H:i')
+                  : '—';
             @endphp
             <tr class="hover:bg-gray-50 transition">
-              <td class="px-3 py-2 text-gray-700">
-                {{ optional($r->created_at)->timezone(config('app.timezone'))->format('Y-m-d H:i') }}
-              </td>
+              <td class="px-3 py-2 text-gray-700">{{ $displayDate }}</td>
               <td class="px-3 py-2">
                 <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 text-gray-700 text-xs">
                   User #{{ $r->user_id }}

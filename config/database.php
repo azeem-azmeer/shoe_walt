@@ -63,14 +63,10 @@ return [
         ],
         'mongodb' => [
         'driver'   => 'mongodb',
-        'host'     => env('MONGO_DB_HOST', '127.0.0.1'),
-        'port'     => env('MONGO_DB_PORT', 27017),
-        'database' => env('MONGO_DB_DATABASE', 'shoe_walt_reviews'),
-        'username' => env('MONGO_DB_USERNAME'),
-        'password' => env('MONGO_DB_PASSWORD'),
-        'options'  => [
-            'database' => env('MONGO_DB_AUTHENTICATION_DATABASE', 'admin'),
-        ],
+        // use the SRV connection string from .env
+        'dsn'      => env('MONGODB_URI'),
+        'database' => env('MONGODB_DATABASE', 'shoewalt'),
+    
     ],
 
 

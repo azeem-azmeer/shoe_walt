@@ -75,28 +75,42 @@
           </div>
 
           <input type="hidden" name="sizes" id="sizes_json">
-          <div x-data="{
-                 rows: [{ size: '', qty: 0 }],
-                 sync(){ document.getElementById('sizes_json').value = JSON.stringify(this.rows); }
-               }" x-init="sync()" x-effect="sync()" class="space-y-2">
-            <div class="flex items-center justify-between">
-              <label class="text-sm font-medium">Sizes & Quantities</label>
-              <button type="button" class="text-blue-600 text-sm hover:underline"
-                      @click="rows.push({size:'',qty:0}); sync()">+ Add Size</button>
-            </div>
-            <template x-for="(row, i) in rows" :key="i">
-              <div class="flex gap-2 items-center">
-                <input type="text" class="flex-1 border rounded p-2" placeholder="Size"
-                       x-model="row.size" @input="sync()">
-                <input type="number" min="0" class="flex-1 border rounded p-2" placeholder="Qty"
-                       x-model.number="row.qty" @input="sync()">
-                <button type="button" class="text-red-600 text-sm"
-                        @click="rows.splice(i,1); if(rows.length===0){rows.push({size:'',qty:0})}; sync()">
-                  Remove
-                </button>
+            <div x-data="{
+                  rows: [{ size: '', qty: 0 }],
+                  sync(){ document.getElementById('sizes_json').value = JSON.stringify(this.rows); }
+                }" x-init="sync()" x-effect="sync()" class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="text-sm font-medium">Sizes & Quantities</label>
+                <button type="button" class="text-blue-600 text-sm hover:underline"
+                        @click="rows.push({size:'',qty:0}); sync()">+ Add Size</button>
               </div>
-            </template>
-          </div>
+              <template x-for="(row, i) in rows" :key="i">
+                <div class="flex gap-2 items-center">
+                  <!-- Size input -->
+                  <input type="text"
+                        class="flex-1 border rounded p-2 
+                                text-sm md:text-base
+                                px-2 py-1 md:px-3 md:py-2"
+                        placeholder="Size"
+                        x-model="row.size" @input="sync()">
+
+                  <!-- Qty input -->
+                  <input type="number" min="0"
+                        class="flex-1 border rounded p-2
+                                text-sm md:text-base
+                                px-2 py-1 md:px-3 md:py-2"
+                        placeholder="Qty"
+                        x-model.number="row.qty" @input="sync()">
+
+                  <!-- Remove button -->
+                  <button type="button" class="text-red-600 text-xs md:text-sm"
+                          @click="rows.splice(i,1); if(rows.length===0){rows.push({size:'',qty:0})}; sync()">
+                    Remove
+                  </button>
+                </div>
+              </template>
+            </div>
+
 
           <div class="flex gap-2">
             <button type="submit" class="px-4 py-2 bg-black text-white rounded hover:bg-gray-800">Add Product</button>
