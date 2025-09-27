@@ -19,6 +19,7 @@ jobs:
 
       - name: Add host to known_hosts
         run: |
+          mkdir -p ~/.ssh
           ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Ensure rsync is available
@@ -27,6 +28,7 @@ jobs:
       - name: Rsync code to server
         run: |
           rsync -az --delete \
+            --rsync-path="sudo rsync" \
             --exclude ".git" \
             --exclude ".github" \
             --exclude "node_modules" \
@@ -38,13 +40,21 @@ jobs:
 
       - name: Run remote post-deploy commands
         run: |
-          ssh -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" << EOF
-            cd "${{ secrets.REMOTE_PATH }}"
-            # Permissions (safe defaults)
-            sudo chown -R www-data:www-data storage bootstrap/cache || true
-            sudo find storage -type d -exec chmod 775 {} \; || true
-            sudo find storage -type f -exec chmod 664 {} \; || true
-            sudo chmod -R 775 bootstrap/cache || true
+          ssh -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" << 'EOF'
+            set -e
+            cd "${REMOTE_PATH:-/var/www/shoewalt}"
+
+            # Ensure runtime dirs exist
+            mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache
+
+            # Keep runtime writable for web server
+            sudo chown -R www-data:www-data storage bootstrap/cache
+            sudo find storage -type d -exec chmod 775 {} \;
+            sudo find storage -type f -exec chmod 664 {} \;
+            sudo chmod -R 775 bootstrap/cache
+
+            # Symlink public/storage -> storage/app/public
+            php artisan storage:link || true
 
             # Laravel caches
             php artisan optimize:clear || true
