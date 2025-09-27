@@ -14,15 +14,22 @@ class Search extends Component
     public bool $showMobile = false; // mobile fullscreen overlay
     public array $results = [];
 
+    /**
+     * Live-updated when query changes.
+     */
     public function updatedQ(): void
     {
         $this->fetch();
         $this->open = strlen(trim($this->q)) > 0;
     }
 
+    /**
+     * Fetch results from DB based on search term.
+     */
     public function fetch(): void
     {
         $term = trim($this->q);
+
         if ($term === '') {
             $this->results = [];
             return;
@@ -33,20 +40,26 @@ class Search extends Component
             ->where('status', 'Active')
             ->where(function ($q) use ($term) {
                 $q->where('product_name', 'like', "%{$term}%")
-                  ->orWhere('category', 'like', "%{$term}%");
+                  ->orWhere('category', 'like', "%{$term}%")
+                  ->orWhereRaw('LOWER(product_name) like ?', ['%' . strtolower($term) . '%']);
             })
             ->orderByDesc('product_id')
             ->take(10)
             ->get()
             ->map(function ($p) {
                 $path = str_replace('\\', '/', ltrim((string)$p->main_image, '/'));
-                $img  = $path
-                    ? (preg_match('~^https?://~i', $path)
-                        ? $path
-                        : (str_starts_with($path, '/storage/') || str_starts_with($path, 'storage/')
-                            ? url(ltrim($path, '/'))
-                            : \Storage::url($path)))
+                $img = $path
+                    ? (
+                        preg_match('~^https?://~i', $path)
+                            ? $path
+                            : (
+                                (str_starts_with($path, '/storage/') || str_starts_with($path, 'storage/'))
+                                    ? url(ltrim($path, '/'))
+                                    : \Storage::url($path)
+                            )
+                    )
                     : asset('storage/products/placeholder.webp');
+
 
                 return [
                     'id'    => $p->product_id,
@@ -60,12 +73,18 @@ class Search extends Component
             ->toArray();
     }
 
+    /**
+     * Move highlight index up/down in desktop suggestions.
+     */
     public function move(int $delta): void
     {
         if (!count($this->results)) return;
         $this->highlight = ($this->highlight + $delta + count($this->results)) % count($this->results);
     }
 
+    /**
+     * Go to highlighted or chosen result.
+     */
     public function go(?int $index = null)
     {
         if ($index === null) $index = $this->highlight;
@@ -74,6 +93,9 @@ class Search extends Component
         return redirect()->to($this->results[$index]['url']);
     }
 
+    /**
+     * Clear query and reset results.
+     */
     public function clear(): void
     {
         $this->q = '';
@@ -82,7 +104,8 @@ class Search extends Component
         $this->highlight = -1;
     }
 
-    // Mobile overlay controls
+    // =================== Mobile overlay controls ===================
+
     public function openMobile(): void
     {
         $this->showMobile = true;
@@ -92,6 +115,7 @@ class Search extends Component
     public function closeMobile(): void
     {
         $this->showMobile = false;
+        $this->clear(); // reset when closing
     }
 
     public function render()

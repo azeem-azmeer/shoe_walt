@@ -39,15 +39,22 @@ class ReviewApiController extends Controller
                    ->exists();
         abort_unless($ok, 404);
 
-        // allow re-creating after delete
-        $rev = Review::updateOrCreate(
-            ['user_id' => Auth::id(), 'order_id' => $data['order_id']],
-            [
-                'product_id' => $data['product_id'] ?? null,
-                'rating'     => $data['rating'],
-                'feedback'   => $data['feedback'],
-            ]
-        );
+       // upsert review and manage timestamps
+$rev = Review::updateOrCreate(
+    ['user_id' => Auth::id(), 'order_id' => $data['order_id']],
+    [
+        'product_id' => $data['product_id'] ?? null,
+        'rating'     => $data['rating'],
+        'feedback'   => $data['feedback'],
+        'updated_at' => now(),
+    ]
+);
+
+    // If newly created and missing created_at, set it
+    if (empty($rev->created_at)) {
+        $rev->created_at = now();
+        $rev->save();
+    }
 
         return response()->json($rev, 201);
     }

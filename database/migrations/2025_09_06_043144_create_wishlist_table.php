@@ -7,46 +7,64 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        // If the table is already in MySQL, skip creation so migrate won't fail.
+        // Create table if it doesn't exist
         if (!Schema::hasTable('wishlist')) {
             Schema::create('wishlist', function (Blueprint $table) {
-                // Primary key
-                $table->id(); // big integer auto-increment
+                $table->id();
 
-                // Foreign keys
+                // users.id (Laravel default is BIGINT UNSIGNED)
                 $table->foreignId('user_id')
-                      ->constrained()            // references users.id
+                      ->constrained()           // users.id
                       ->cascadeOnDelete();
 
-                // If your products PK is 'id' (default), this is correct:
-                $table->foreignId('product_id')
-                      ->constrained('products')  // references products.id
+                // products.product_id (BIGINT UNSIGNED in your schema)
+                $table->unsignedBigInteger('product_id');
+                $table->foreign('product_id')
+                      ->references('product_id') // <-- reference real PK on products
+                      ->on('products')
                       ->cascadeOnDelete();
 
-                // If your products PK is 'product_id' instead, comment the two
-                // lines above and use the two lines below:
-                // $table->unsignedBigInteger('product_id');
-                // $table->foreign('product_id')->references('product_id')->on('products')->cascadeOnDelete();
-
-                // Data columns
                 $table->timestamp('added_at')->useCurrent();
 
-                // Prevent duplicates per user
+                // Prevent duplicates per user/product
                 $table->unique(['user_id', 'product_id']);
             });
         } else {
-            // Table exists already — optionally ensure the expected columns exist.
-            // (Only adds 'added_at' if it's missing; safe to run multiple times.)
-            if (!Schema::hasColumn('wishlist', 'added_at')) {
-                Schema::table('wishlist', function (Blueprint $table) {
+            // If table exists, make sure required columns/constraints are there
+            Schema::table('wishlist', function (Blueprint $table) {
+                if (!Schema::hasColumn('wishlist', 'product_id')) {
+                    $table->unsignedBigInteger('product_id')->after('user_id');
+                }
+                if (!Schema::hasColumn('wishlist', 'added_at')) {
                     $table->timestamp('added_at')->useCurrent()->after('product_id');
-                });
-            }
+                }
+
+                // Add FK only if it's missing
+                $sm = Schema::getConnection()->getDoctrineSchemaManager();
+                $doctrineTable = $sm->listTableDetails('wishlist');
+                if (!$doctrineTable->hasForeignKey('wishlist_product_id_foreign')) {
+                    $table->foreign('product_id')
+                          ->references('product_id')
+                          ->on('products')
+                          ->cascadeOnDelete();
+                }
+
+                // Ensure unique constraint exists
+                if (!$doctrineTable->hasIndex('wishlist_user_id_product_id_unique')) {
+                    $table->unique(['user_id', 'product_id']);
+                }
+            });
         }
     }
 
     public function down(): void
     {
+        Schema::table('wishlist', function (Blueprint $table) {
+            // Drop FK/indexes defensively
+            try { $table->dropForeign('wishlist_product_id_foreign'); } catch (\Throwable $e) {}
+            try { $table->dropUnique('wishlist_user_id_product_id_unique'); } catch (\Throwable $e) {}
+        });
+
         Schema::dropIfExists('wishlist');
     }
 };

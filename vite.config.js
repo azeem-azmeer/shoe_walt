@@ -7,6 +7,7 @@ export default defineConfig({
     laravel({
       // List entry files as strings — do NOT import them here
       input: [
+        
         'resources/css/app.css',
         'resources/js/app.js',
         'resources/js/user-index.js',
