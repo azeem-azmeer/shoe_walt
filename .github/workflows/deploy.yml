@@ -7,19 +7,49 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Example: SSH and run a deploy script on your EC2
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Start ssh-agent and add key
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          script: |
-            cd /var/www/shoewalt
-            git pull origin main
-            php artisan migrate --force
-            php artisan optimize:clear
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add host to known_hosts
+        run: |
+          ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Ensure rsync is available
+        run: sudo apt-get update && sudo apt-get install -y rsync
+
+      - name: Rsync code to server
+        run: |
+          rsync -az --delete \
+            --exclude ".git" \
+            --exclude ".github" \
+            --exclude "node_modules" \
+            --exclude "vendor" \
+            --exclude ".env" \
+            --exclude "storage/*.key" \
+            --exclude "storage/framework/cache/data/*" \
+            ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.REMOTE_PATH }}
+
+      - name: Run remote post-deploy commands
+        run: |
+          ssh -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" << EOF
+            cd "${{ secrets.REMOTE_PATH }}"
+            # Permissions (safe defaults)
+            sudo chown -R www-data:www-data storage bootstrap/cache || true
+            sudo find storage -type d -exec chmod 775 {} \; || true
+            sudo find storage -type f -exec chmod 664 {} \; || true
+            sudo chmod -R 775 bootstrap/cache || true
+
+            # Laravel caches
+            php artisan optimize:clear || true
+            php artisan migrate --force || true
+            php artisan config:cache || true
+            php artisan route:cache || true
+            php artisan view:cache || true
+          EOF
