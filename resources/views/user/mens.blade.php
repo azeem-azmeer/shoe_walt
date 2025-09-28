@@ -29,21 +29,11 @@
       <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
         @forelse(($products ?? collect()) as $p)
           @php
-            $raw = array_values(array_filter([
-              $p->main_image,$p->view_image2, $p->view_image3, $p->view_image4,
-            ]));
-
-            $toUrl = function ($path) {
-              if (!$path) return null;
-              $path = str_replace('\\', '/', ltrim((string) $path, '/'));
-              if (preg_match('~^https?://~i', $path)) return $path;
-              if (str_starts_with($path, '/storage/')) return url(ltrim($path,'/'));
-              if (str_starts_with($path, 'storage/'))  return url($path);
-              return \Storage::url($path);
-            };
-
-            $imgs = array_values(array_filter(array_map($toUrl, $raw)));
-            if (empty($imgs)) $imgs = [asset('storage/products/placeholder.webp')];
+            // Prefer the gallery (view images); fall back to main image URL
+            $imgs = $p->view_images_urls;
+            if (empty($imgs)) {
+              $imgs = [$p->main_image_url ?: asset('storage/products/placeholder.webp')];
+            }
           @endphp
 
           {{-- Product Card with Alpine hover slideshow --}}
@@ -98,21 +88,14 @@
         i: 0,
         t: null,
         init() {
-          try {
-            this.imgs = JSON.parse(this.$el.dataset.imgs || '[]');
-          } catch (e) {
-            this.imgs = [];
-          }
+          try { this.imgs = JSON.parse(this.$el.dataset.imgs || '[]'); }
+          catch (e) { this.imgs = []; }
         },
-        get current() {
-          return this.imgs[this.i] || '';
-        },
+        get current() { return this.imgs[this.i] || ''; },
         begin() {
           if (!Array.isArray(this.imgs) || this.imgs.length < 2) return;
           if (this.t) clearInterval(this.t);
-          this.t = setInterval(() => {
-            this.i = (this.i + 1) % this.imgs.length;
-          }, 1000);
+          this.t = setInterval(() => { this.i = (this.i + 1) % this.imgs.length; }, 1000);
         },
         end() {
           if (this.t) clearInterval(this.t);

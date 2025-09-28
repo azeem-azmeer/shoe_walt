@@ -1,16 +1,22 @@
 <div>
   <style>
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+    .no-scrollbar::-webkit-scrollbar { display:none; }
   </style>
 
   {{-- STILL INTERESTED? (Kids + Women only) --}}
   <section
     x-data="{
       step: 320,
-      init(){ this.$nextTick(() => { const el = this.$refs.first; if (el) this.step = el.offsetWidth + 24; }); },
-      prev(){ this.$refs.scroller.scrollBy({ left: -this.step, behavior: 'smooth' }) },
-      next(){ this.$refs.scroller.scrollBy({ left:  this.step, behavior: 'smooth' }) },
+      init(){
+        this.$nextTick(() => {
+          const el = this.$refs.first;
+          const gap = 24; // matches .gap-6
+          if (el) this.step = el.offsetWidth + gap;
+        });
+      },
+      prev(){ this.$refs.scroller?.scrollBy({ left: -this.step, behavior: 'smooth' }); },
+      next(){ this.$refs.scroller?.scrollBy({ left:  this.step, behavior: 'smooth' }); },
     }"
     x-init="init()"
     class="w-full bg-white/20 py-10"
@@ -37,7 +43,7 @@
         aria-label="Scroll right">›</button>
 
       {{-- scroller --}}
-      <div x-ref="scroller" class="no-scrollbar flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory px-4">
+      <div x-ref="scroller" class="no-scrollbar flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory px-4" aria-label="Similar products">
         @forelse($products as $i => $p)
           <a
             href="{{ route('user.product.preview', $p) }}" {{-- route-model binding via product_id --}}
@@ -46,10 +52,15 @@
             @if($i === 0) x-ref="first" @endif
             aria-label="View {{ $p->product_name }}"
           >
-            {{-- CHANGED: aspect-[4/3] -> aspect-[5/4] --}}
+            {{-- aspect ratio & intrinsic size to reduce CLS --}}
             <div class="relative w-full aspect-[5/4] overflow-hidden rounded-md">
-              <img src="{{ $p->main_image_url }}" alt="{{ $p->product_name }}"
-                   class="absolute inset-0 w-full h-full object-contain transition-transform duration-300 ease-out group-hover:scale-105 will-change-transform" />
+              <img
+                src="{{ $p->main_image_url }}"
+                alt="{{ $p->product_name }}"
+                class="absolute inset-0 w-full h-full object-contain transition-transform duration-300 ease-out group-hover:scale-105 will-change-transform"
+                width="1280" height="1024"
+                loading="lazy" decoding="async"
+                onerror="this.onerror=null;this.src='{{ asset('storage/products/placeholder.webp') }}'">
             </div>
 
             <div class="px-1 mt-3">

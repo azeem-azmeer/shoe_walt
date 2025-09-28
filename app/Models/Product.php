@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model; 
-use Illuminate\Support\Facades\Storage;  
-use Illuminate\Support\Str;    
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class Product extends Model
 {
@@ -14,9 +14,18 @@ class Product extends Model
     protected $keyType = 'int';
 
     protected $fillable = [
-        'product_name','description','price','category','status',
-        'main_image','view_image1','view_image2','view_image3','view_image4',
-        'sold_pieces','stock',
+        'product_name',
+        'description',
+        'price',
+        'category',
+        'status',
+        'main_image',
+        'view_image1',
+        'view_image2',
+        'view_image3',
+        'view_image4',
+        'sold_pieces',
+        'stock',
     ];
 
     protected $casts = [
@@ -24,114 +33,102 @@ class Product extends Model
         'sold_pieces' => 'integer',
         'stock'       => 'integer',
     ];
-  public function getRouteKeyName()
+
+    // Expose computed URLs automatically when the model is serialized
+    protected $appends = [
+        'main_image_url',
+        'view_images_urls',
+    ];
+
+    public function getRouteKeyName()
     {
         return 'product_id';
     }
-    protected $appends = ['main_image_url'];
-        public function getMainImageUrlAttribute(): string
-    {
-        $p = $this->main_image;
 
-        if (!$p) {
-            return asset('storage/products/placeholder.png');
-        }
-
-        // Already a full URL or /storage path
-        if (Str::startsWith($p, ['http://','https://','/'])) {
-            return $p;
-        }
-
-        // If stored like "public/products/foo.jpg", strip the prefix
-        if (Str::startsWith($p, 'public/')) {
-            $p = Str::after($p, 'public/');
-        }
-
-        // Normal case: stored on "public" disk as "products/foo.jpg"
-        if (Storage::disk('public')->exists($p)) {
-            return Storage::url($p); // -> /storage/products/foo.jpg
-        }
-
-        // Last fallback guess
-        return asset('storage/'.$p);
-    }
+    /* ===========================
+     |  Relationships
+     * =========================== */
     public function sizes()
     {
-        return $this->hasMany(ProductSize::class, 'product_id', 'product_id');
+        return $this->hasMany(ProductSize::class, 'product_id', 'product_id')
+            ->orderBy('size'); // handy default ordering
     }
 
-    public function preview(Product $product)
-    {
-        // Load sizes (ordered)
-        $product->load(['sizes' => fn($q) => $q->orderBy('size')]);
+    /* ===========================
+     |  Accessors (Computed)
+     * =========================== */
 
-        // Build gallery from view images (fallback to main image)
-        $views = array_filter([
-            $product->view_image1,
-            $product->view_image2,
-            $product->view_image3,
-            $product->view_image4,
+    /**
+     * Main image public URL.
+     */
+    public function getMainImageUrlAttribute(): string
+    {
+        return $this->toPublicUrl(
+            $this->main_image,
+            asset('storage/products/placeholder.png')
+        );
+    }
+
+    /**
+     * Array of public URLs for view images (1–4).
+     *
+     * @return array<int, string>
+     */
+    public function getViewImagesUrlsAttribute(): array
+    {
+        $paths = array_filter([
+            $this->view_image1,
+            $this->view_image2,
+            $this->view_image3,
+            $this->view_image4,
         ]);
 
-        $images = collect($views)
-            ->map(fn($p) => $p ? \Storage::url($p) : null)
-            ->filter()
+        return collect($paths)
+            ->map(fn ($p) => $this->toPublicUrl($p, null))
+            ->filter() // drop nulls if any path missing
             ->values()
             ->all();
-
-        if (empty($images)) {
-    // Fall back to a single URL (not an <img> tag)
-    $images = [
-        $product->main_image
-            ? Storage::url($product->main_image)           // -> "/storage/products/xxx.webp"
-            : asset('storage/products/placeholder.png'),   // fallback placeholder
-    ];
-}
-
-        // Sizes for Blade
-        $sizes = $product->sizes
-            ->map(fn($s) => [
-                'label'    => (string) $s->size,
-
-                'qty'      => (int) $s->qty,
-                'disabled' => (int) $s->qty <= 0,
-            ])
-            ->values();
-
-        $inStock = (int) $product->sizes->sum('qty') > 0;
-
-        // ---------- Similar products ----------
-        $similarProducts = Product::query()
-            ->when($product->category, fn($q) => $q->where('category', $product->category))
-            ->where('product_id', '!=', $product->product_id)   // your PK
-            ->when(
-                \Schema::hasColumn('products', 'status'),
-                fn($q) => $q->where('status', 'Active')
-            )
-            ->orderByDesc('product_id')
-            ->take(8)
-            ->get(['product_id','product_name','price','category','main_image']);
-
-        if ($similarProducts->isEmpty()) {
-            $similarProducts = Product::query()
-                ->where('product_id', '!=', $product->product_id)
-                ->orderByDesc('product_id')
-                ->take(8)
-                ->get(['product_id','product_name','price','category','main_image']);
-        }
-        // --------------------------------------
-
-        return view('user.productpreview', [
-            'product'          => $product,
-            'images'           => $images,
-            'sizes'            => $sizes,
-            'inStock'          => $inStock,
-            'crumbs'           => [
-                ['label' => 'Home',  'href' => route('dashboard')],
-                ['label' => $product->category ?? 'Products', 'href' => '#'],
-            ],
-            'similarProducts'  => $similarProducts,
-        ]);
     }
 
+    /* ===========================
+     |  Helpers
+     * =========================== */
+
+    /**
+     * Convert a stored path / absolute URL into a public URL.
+     * - Accepts:
+     *    - "products/foo.avif"
+     *    - "public/products/foo.avif"
+     *    - "/storage/products/foo.avif"
+     *    - "https://cdn.example.com/foo.avif"
+     *
+     * @param  string|null  $path
+     * @param  string|null  $fallback
+     * @return string|null
+     */
+    protected function toPublicUrl(?string $path, ?string $fallback = null): ?string
+    {
+        if (!$path) {
+            return $fallback;
+        }
+
+        // Already absolute (http/https) or already a root path (/storage/...)
+        if (Str::startsWith($path, ['http://', 'https://', '/'])) {
+            return $path;
+        }
+
+        // If accidentally stored with "public/" prefix, strip it
+        if (Str::startsWith($path, 'public/')) {
+            $path = Str::after($path, 'public/');
+        }
+
+        // Normal case: stored on "public" disk (storage/app/public/...)
+        // Storage::url('products/foo.avif') => "/storage/products/foo.avif"
+        if (Storage::disk('public')->exists($path)) {
+            return Storage::url($path);
+        }
+
+        // Last attempt: assume it's relative to /storage
+        return asset('storage/' . ltrim($path, '/'));
+    }
 }
