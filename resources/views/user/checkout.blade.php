@@ -36,14 +36,12 @@
     @endif
 
     <form id="checkoutForm" method="POST" action="{{ route('user.checkout.store') }}" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-
       @csrf
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        
         {{-- LEFT: Shipping address + payment --}}
         <div class="lg:col-span-8 space-y-8">
-          
+
           {{-- Shipping address --}}
           <section aria-labelledby="shipping-heading" class="border rounded-xl">
             <div class="px-4 py-3 border-b flex items-center justify-between">
@@ -113,7 +111,7 @@
                   <label class="block text-sm text-gray-600 mb-1">Email *</label>
                   <input type="email" name="email" 
                          value="{{ old('email', auth()->user()->email ?? '') }}"
-                         class="w-full border rounded-md px-3 py-2" required>
+                         class="w-full border rounded-md px-3 py-2" required autocomplete="email">
                 </div>
               </div>
             </div>
@@ -123,7 +121,6 @@
           <section aria-labelledby="payment-heading" class="border rounded-xl">
             <div class="px-4 py-3 border-b flex items-center justify-between">
               <h2 id="payment-heading" class="text-lg font-bold">Payment Method</h2>
-              {{-- Payment image --}}
               <img src="{{ asset('storage/products/payemnt.webp') }}" 
                    alt="Available payment methods" 
                    class="h-8 sm:h-14 object-contain">
@@ -132,30 +129,61 @@
             <div class="p-4 sm:p-6 space-y-4">
               <div>
                 <label class="block text-sm text-gray-600 mb-1">Choose Method *</label>
-                <select name="payment_method" class="w-full border rounded-md px-3 py-2" required>
+                <select id="payment_method" name="payment_method" class="w-full border rounded-md px-3 py-2" required>
                   <option value="">Select payment method</option>
                   <option value="card" {{ old('payment_method')=='card'?'selected':'' }}>Credit/Debit Card</option>
-                  <option value="paypal" {{ old('payment_method')=='paypal'?'selected':'' }}>PayPal</option>
+                  <option value="cod"  {{ old('payment_method')=='cod'?'selected':'' }}>Cash on Delivery</option>
                 </select>
               </div>
 
-              {{-- Demo only --}}
-              <div>
-                <label class="block text-sm text-gray-600 mb-1">Credit Card Number *</label>
-                <input name="card_number" inputmode="numeric" placeholder="1234 5678 9012 3456"
-                       class="w-full border rounded-md px-3 py-2">
-              </div>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {{-- Card fields (enabled only when "card" is selected) --}}
+              <div id="cardFields" class="space-y-4">
+                {{-- Card Number --}}
                 <div>
-                  <label class="block text-sm text-gray-600 mb-1">Expiration Date *</label>
-                  <input name="expiry" placeholder="MM/YY" class="w-full border rounded-md px-3 py-2">
+                  <label class="block text-sm text-gray-600 mb-1">Credit Card Number *</label>
+                  <input
+                    id="card_number"
+                    name="card_number"
+                    inputmode="numeric"
+                    autocomplete="cc-number"
+                    maxlength="19"
+                    placeholder="1234 5678 9012 3456"
+                    class="w-full border rounded-md px-3 py-2"
+                  >
+                  <p id="card_number_error" class="hidden text-xs text-red-600 mt-1">Enter a valid card number (13–19 digits).</p>
                 </div>
-                <div>
-                  <label class="block text-sm text-gray-600 mb-1">Security Code *</label>
-                  <input name="cvv" placeholder="3 digits" class="w-full border rounded-md px-3 py-2">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {{-- Expiry --}}
+                  <div>
+                    <label class="block text-sm text-gray-600 mb-1">Expiration Date *</label>
+                    <input
+                      id="expiry"
+                      name="expiry"
+                      autocomplete="cc-exp"
+                      placeholder="MM/YY"
+                      class="w-full border rounded-md px-3 py-2"
+                    >
+                    <p id="expiry_error" class="hidden text-xs text-red-600 mt-1">Use MM/YY and a future date.</p>
+                  </div>
+
+                  {{-- CVV --}}
+                  <div>
+                    <label class="block text-sm text-gray-600 mb-1">Security Code *</label>
+                    <input
+                      id="cvv"
+                      name="cvv"
+                      inputmode="numeric"
+                      autocomplete="cc-csc"
+                      maxlength="4"
+                      placeholder="3 or 4 digits"
+                      class="w-full border rounded-md px-3 py-2"
+                    >
+                    <p id="cvv_error" class="hidden text-xs text-red-600 mt-1">CVV must be 3–4 digits.</p>
+                  </div>
                 </div>
+                <p class="text-xs text-gray-500">For demo purposes, submitting will create the order.</p>
               </div>
-              <p class="text-xs text-gray-500">For demo purposes, submitting will create the order.</p>
             </div>
           </section>
         </div>
@@ -211,7 +239,6 @@
                 PLACE ORDER
               </button>
 
-
               <p class="text-xs text-gray-500 mt-2">* Tax shown is an estimate.</p>
             </div>
           </div>
@@ -220,7 +247,7 @@
     </form>
   </div>
 
-  
+  {{-- Load validation first, then your overlay script --}}
   @vite('resources/js/user-checkout.js')
   @include('user.footer')
 </x-app-layout>

@@ -82,24 +82,26 @@ async function authedFetch(input, init = {}, retry = true) {
   }
   return res;
 }
+// Return only the first validation message (or a generic one)
 async function readError(res) {
   try {
     const data = await res.json();
-    if (data?.message) return data.message;
     if (data?.errors) {
-      const k = Object.keys(data.errors)[0];
-      const v = data.errors[k];
-      return Array.isArray(v) ? v[0] : String(v);
+      const [[, msgs]] = Object.entries(data.errors); // first field only
+      return Array.isArray(msgs) ? msgs[0] : String(msgs);
     }
+    if (data?.message) return data.message;
   } catch {}
-  return `${res.status} ${res.statusText || 'Error'}`;
+  return 'Validation failed';
 }
+
 
 function goToProductsList() {
   const fallback = '/admin/products';
   const url = (window.__APP && window.__APP.adminProductsUrl) ? window.__APP.adminProductsUrl : fallback;
   window.location.href = url;
 }
+
 
 // ===== Submit handler (redirects to products list) =====
 window.submitCreate = async function (e) {
@@ -110,7 +112,6 @@ window.submitCreate = async function (e) {
   try {
     const fd = new FormData(form);
 
-    // If sizes_json is empty, build from any .size-row (works even without Alpine)
     if (!fd.get('sizes')) {
       const rows = Array.from(form.querySelectorAll('.size-row'));
       const sizes = rows.map(r => ({
@@ -120,7 +121,6 @@ window.submitCreate = async function (e) {
       fd.set('sizes', JSON.stringify(sizes));
     }
 
-    // Lightweight client validation mirroring server rules
     const category = fd.get('category');
     const status = fd.get('status');
     if (!['Men','Women','Kids'].includes(category)) throw new Error('Category must be Men, Women, or Kids.');
@@ -135,12 +135,10 @@ window.submitCreate = async function (e) {
     if (!res.ok) throw new Error(await readError(res));
 
     toast('Product created successfully.', 'success');
-
-    // ✅ Redirect to Products list (not the edit form)
     setTimeout(goToProductsList, 600);
   } catch (err) {
-    alert(err?.message || 'Create failed'); // keep alert for quick debugging
-    toast(err?.message || 'Create failed', 'error');
+    console.error('Create failed:', err);         // <— log only
+    toast(err?.message || 'Create failed', 'error', 4000); // <— single message (no alert)
   }
 
   return false;
