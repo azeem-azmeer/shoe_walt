@@ -101,96 +101,113 @@ class CheckoutController extends Controller
     /**
      * POST /checkout
      */
-    public function store(Request $request)
-    {
-        $uid  = Auth::id();
-        $user = Auth::user();
+    // app/Http/Controllers/CheckoutController.php
 
-        $data = $request->validate([
-            'street_address' => ['required', 'string', 'max:255'],
-            'address2'       => ['nullable', 'string', 'max:255'],
-            'city'           => ['required', 'string', 'max:120'],
-            'state'          => ['required', 'string', 'max:120'],
-            'zip'            => ['required', 'string', 'max:20'],
-            'phone'          => ['required', 'string', 'max:30'],
-            'email'          => ['required', 'email', 'max:255'],
-            'payment_method' => ['required', 'in:card,paypal'],
+public function store(Request $request)
+{
+    $uid  = Auth::id();
+    $user = Auth::user();
+
+    // Build the allowed state codes from your helper
+    $stateCodes = array_keys($this->states());
+
+    // Validate: align payment_method to the form (card | cod)
+    $data = $request->validate([
+        // (You can add first_name/last_name here if you want to capture them)
+        'street_address' => ['required','string','max:255'],
+        'address2'       => ['nullable','string','max:255'],
+        'city'           => ['required','string','max:120'],
+        // Use the 2-letter codes you render in the select
+        'state'          => ['required','in:'.implode(',', $stateCodes)],
+        'zip'            => ['required','string','max:20'],
+        'phone'          => ['required','string','max:30'],
+        'email'          => ['required','email','max:255'],
+
+        // FIX: match the Blade <select name="payment_method"> values
+        'payment_method' => ['required','in:card,cod'],
+
+        // Only required for card payments:
+        'card_number'    => ['required_if:payment_method,card','nullable','string','max:25'],
+        'expiry'         => ['required_if:payment_method,card','nullable','string','max:7'],
+        'cvv'            => ['required_if:payment_method,card','nullable','string','max:4'],
+    ], [
+        // Optional: nicer messages
+        'payment_method.in'           => 'Please choose a valid payment method.',
+        'card_number.required_if'     => 'Enter your card number.',
+        'expiry.required_if'          => 'Enter your card expiry in MM/YY.',
+        'cvv.required_if'             => 'Enter your card security code.',
+        'state.in'                    => 'Please select a valid state.',
+    ]);
+
+    // Fetch cart
+    $cart = DB::table('customer_cart as c')
+        ->join('products as p', 'p.product_id', '=', 'c.product_id')
+        ->where('c.user_id', $uid)
+        ->select(['c.product_id','c.size','c.quantity','p.price'])
+        ->get();
+
+    if ($cart->isEmpty()) {
+        return back()->withErrors(['cart' => 'Your cart is empty.'])->withInput();
+    }
+
+    // Totals
+    $subtotal = (float) $cart->sum(fn ($r) => $r->price * $r->quantity);
+    $taxRate  = 0.10;
+    $tax      = round($subtotal * $taxRate, 2);
+    $shipping = 0.00;
+    $total    = round($subtotal + $tax + $shipping, 2);
+
+    // Build address string for storage (unchanged)
+    $address2 = $data['address2'] ?? '';
+    $fullAddress = trim(implode(', ', array_filter([
+        $data['street_address'] . ($address2 !== '' ? ' ' . $address2 : ''),
+        "{$data['city']}, {$data['state']} {$data['zip']}",
+        "Phone: {$data['phone']}",
+        "Email: {$data['email']}",
+    ])));
+
+    // Save order + items
+    $order = DB::transaction(function () use ($uid, $user, $cart, $total, $fullAddress) {
+        $order = Order::create([
+            'user_id'        => $user->id,
+            'street_address' => $fullAddress,
+            'status'         => 'Pending',
+            'total'          => $total,
         ]);
 
-        // Fetch cart
-        $cart = DB::table('customer_cart as c')
-            ->join('products as p', 'p.product_id', '=', 'c.product_id')
-            ->where('c.user_id', $uid)
-            ->select(['c.product_id','c.size','c.quantity','p.price'])
-            ->get();
-
-        if ($cart->isEmpty()) {
-            return back()->withErrors(['cart' => 'Your cart is empty.']);
-        }
-
-        // Totals
-        $subtotal = (float) $cart->sum(fn ($r) => $r->price * $r->quantity);
-        $taxRate  = 0.10;
-        $tax      = round($subtotal * $taxRate, 2);
-        $shipping = 0.00;
-        $total    = round($subtotal + $tax + $shipping, 2);
-
-        // Build address string
-        $address2 = $data['address2'] ?? '';
-        $fullAddress = trim(implode(', ', array_filter([
-            $data['street_address'] . ($address2 !== '' ? ' ' . $address2 : ''),
-            "{$data['city']}, {$data['state']} {$data['zip']}",
-            "Phone: {$data['phone']}",
-            "Email: {$data['email']}",
-        ])));
-
-        // Save order + items
-        $order = DB::transaction(function () use ($uid, $user, $cart, $total, $fullAddress) {
-            $order = Order::create([
-                'user_id'        => $user->id,
-                'street_address' => $fullAddress,
-                'status'         => 'Pending',
-                'total'          => $total,
+        foreach ($cart as $line) {
+            OrderItem::create([
+                'order_id'   => $order->id,
+                'product_id' => (int) $line->product_id,
+                'size'       => (string) $line->size,
+                'quantity'   => (int) $line->quantity,
+                'unit_price' => (float) $line->price,
             ]);
 
-            foreach ($cart as $line) {
-                // Insert into order_items
-                OrderItem::create([
-                    'order_id'   => $order->id,
-                    'product_id' => (int) $line->product_id,
-                    'size'       => (string) $line->size,
-                    'quantity'   => (int) $line->quantity,
-                    'unit_price' => (float) $line->price,
-                ]);
+            DB::table('products')
+                ->where('product_id', $line->product_id)
+                ->increment('sold_pieces', $line->quantity);
 
-                // Update sold_pieces
-                DB::table('products')
-                    ->where('product_id', $line->product_id)
-                    ->increment('sold_pieces', $line->quantity);
+            DB::table('product_sizes')
+                ->where('product_id', $line->product_id)
+                ->where('size', $line->size)
+                ->decrement('qty', $line->quantity);
+        }
 
-                // Reduce size qty
-                DB::table('product_sizes')
-                    ->where('product_id', $line->product_id)
-                    ->where('size', $line->size)
-                    ->decrement('qty', $line->quantity);
-            }
+        // Clear cart
+        DB::table('customer_cart')->where('user_id', $uid)->delete();
 
-            // Clear cart
-            DB::table('customer_cart')->where('user_id', $uid)->delete();
+        // Send receipt email
+        Mail::to($user->email)->send(new OrderReceiptMail($order));
 
-              // ✅ Send receipt email
-        
-                Mail::to($user->email)->send(new OrderReceiptMail($order));
+        return $order;
+    });
 
-            
+    return redirect()
+        ->route('user.orders.show', ['order' => $order->id])
+        ->with('success', 'Order placed successfully!');
+}
 
-            return $order;
-        });
-
-        return redirect()
-            ->route('user.orders.show', ['order' => $order->id])
-            ->with('success', 'Order placed successfully!');
-    }
 
     /**
      * GET /orders/{order}

@@ -29,27 +29,47 @@
       <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
         @forelse(($products ?? collect()) as $p)
           @php
-            // Prefer the gallery (view images); fall back to main image URL
-            $imgs = $p->view_images_urls;
+            // Build imgs array exactly like Women’s page does (robust to mixed paths)
+            $raw = array_values(array_filter([
+              $p->main_image ?? null,
+              $p->view_image2 ?? null,
+              $p->view_image3 ?? null,
+              $p->view_image4 ?? null,
+            ]));
+
+            $toUrl = function ($path) {
+              if (!$path) return null;
+              $path = str_replace('\\', '/', ltrim((string) $path, '/'));
+              if (preg_match('~^https?://~i', $path)) return $path;
+              if (str_starts_with($path, '/storage/')) return url(ltrim($path,'/'));
+              if (str_starts_with($path, 'storage/'))  return url($path);
+              return \Storage::url($path);
+            };
+
+            $imgs = array_values(array_filter(array_map($toUrl, $raw)));
             if (empty($imgs)) {
-              $imgs = [$p->main_image_url ?: asset('storage/products/placeholder.webp')];
+              // Fallback to view_images_urls if it exists, else placeholder
+              $alts = is_array($p->view_images_urls ?? null) ? $p->view_images_urls : [];
+              $imgs = !empty($alts) ? $alts : [asset('storage/products/placeholder.webp')];
             }
           @endphp
 
-          {{-- Product Card with Alpine hover slideshow --}}
+          {{-- Product Card with Alpine hover slideshow (same as Women’s) --}}
           <a href="{{ route('user.product.preview', $p->product_id) }}"
              class="group block border border-gray-300 rounded-md p-3 transition-colors hover:border-black"
              x-data="slideCard"
-             data-imgs='@json($imgs, JSON_UNESCAPED_SLASHES)'
-             @mouseenter="begin()"
-             @mouseleave="end()">
+             x-init="init()"
+             data-imgs='@json($imgs, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_UNESCAPED_SLASHES)'
+             @pointerenter="begin()"
+             @pointerleave="end()">
 
             <div class="bg-white border border-gray-300 transition-colors group-hover:border-black overflow-hidden prod-img-box">
-              <img class="w-full h-full object-cover object-center block"
-                   :src="current"
-                   alt="{{ $p->product_name }}"
-                   loading="lazy"
-                   onerror="this.onerror=null;this.src='{{ asset('storage/products/placeholder.webp') }}'">
+              <img
+                class="w-full h-full object-cover object-center block transition-transform duration-300 group-hover:scale-105"
+                :src="current"
+                alt="{{ $p->product_name }}"
+                loading="lazy"
+                onerror="this.onerror=null;this.src='{{ asset('storage/products/placeholder.webp') }}'">
             </div>
 
             <div class="pt-3">
@@ -74,13 +94,16 @@
       @media (max-width: 767.98px) {
         .prod-img-box { width: 100%; height: auto; aspect-ratio: 1 / 1; }
       }
+      @media (hover: none) {
+        .group:hover .group-hover\:scale-105 { transform: none !important; }
+      }
     </style>
 
     <div class="h-6 md:h-8 bg-white"></div>
     @include('user.footer')
   </div>
 
-  {{-- Tiny Alpine component (no external file needed) --}}
+  {{-- Tiny Alpine component (identical to Women’s) --}}
   <script>
     document.addEventListener('alpine:init', () => {
       Alpine.data('slideCard', () => ({
@@ -89,7 +112,7 @@
         t: null,
         init() {
           try { this.imgs = JSON.parse(this.$el.dataset.imgs || '[]'); }
-          catch (e) { this.imgs = []; }
+          catch { this.imgs = []; }
         },
         get current() { return this.imgs[this.i] || ''; },
         begin() {

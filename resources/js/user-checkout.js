@@ -198,7 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.head.appendChild(style);
 
     // submit after a short pause
-    setTimeout(() => form.submit(), 1100);
+    setTimeout(() => form.submit(), 800);
   });
 
   // Initialize on load
