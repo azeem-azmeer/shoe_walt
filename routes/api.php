@@ -88,13 +88,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders', [CheckoutController::class, 'store'])->name('api.orders.store');
 
     // Reviews (authenticated CRUD)
-    Route::controller(ReviewApiController::class)->group(function () {
-        Route::get   ('/reviews',        'index'  )->name('api.reviews.index');   // list
-        Route::get   ('/reviews/{id}',   'show'   )->whereNumber('id')->name('api.reviews.show');
-        Route::post  ('/reviews',        'store'  )->name('api.reviews.store');   // create
-        Route::put   ('/reviews/{id}',   'update' )->whereNumber('id')->name('api.reviews.update');
-        Route::delete('/reviews/{id}',   'destroy')->whereNumber('id')->name('api.reviews.destroy');
-    });
+   Route::controller(ReviewApiController::class)->group(function () {
+    Route::get   ('/reviews',      'index'  )->name('api.reviews.index');
+    Route::post  ('/reviews',      'store'  )->name('api.reviews.store');
+    Route::put   ('/reviews/{id}', 'update' )->name('api.reviews.update');
+    Route::delete('/reviews/{id}', 'destroy')->name('api.reviews.destroy');
+});
+
 });
 
 // Public product reviews (per product)
