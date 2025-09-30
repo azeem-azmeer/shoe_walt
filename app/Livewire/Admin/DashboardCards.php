@@ -44,11 +44,11 @@ class DashboardCards extends Component
 
         // Optional breakdowns:
         $todaySales = (float) Order::where('status', 'Confirmed')
-            ->whereDate('order_date', today())
-            ->sum('total');
+        ->whereDate('updated_at', today())
+        ->sum('total');
 
         $monthSales = (float) Order::where('status', 'Confirmed')
-            ->whereBetween('order_date', [now()->startOfMonth(), now()->endOfMonth()])
+            ->whereBetween('updated_at', [now()->startOfMonth(), now()->endOfMonth()])
             ->sum('total');
 
         return view('livewire.admin.dashboard-cards', [

@@ -114,9 +114,7 @@
               @unless($isAdmin)
                 <a href="{{ route('user.orders') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-50">My Orders</a>
               @endunless
-              @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
-                <a href="{{ route('api-tokens.index') }}" class="block px-3 py-2 rounded-lg hover:bg-gray-50">API Tokens</a>
-              @endif
+
 
               <div class="my-2 border-t"></div>
 
