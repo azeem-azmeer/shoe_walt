@@ -9,7 +9,7 @@ class OrderItem extends Model
 {
     use HasFactory;
 
-    public $timestamps = false;   // ✅ Disable auto created_at/updated_at
+    public $timestamps = false;   
 
     protected $fillable = [
         'order_id',

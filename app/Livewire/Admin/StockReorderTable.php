@@ -36,7 +36,7 @@ class StockReorderTable extends Component
         $q = Product::query()
             ->select('product_id','product_name','price','category','status','main_image')
             ->with(['sizes:product_id,size,qty'])
-            // only products that have at least one zero-size
+            
             ->whereExists(function ($sub) {
                 $sub->selectRaw(1)
                     ->from('product_sizes as ps')
@@ -64,7 +64,7 @@ class StockReorderTable extends Component
     }
     public function go()
 {
-    $this->resetPage(); // refresh pagination
+    $this->resetPage(); 
 }
 
 }

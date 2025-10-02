@@ -24,8 +24,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        // if you use role-based auth, make sure 'role' exists in DB:
-        // 'role',
+        
     ];
 
     protected $hidden = [

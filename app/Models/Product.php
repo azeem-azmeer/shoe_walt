@@ -49,7 +49,7 @@ class Product extends Model
 
         // Normal case: stored on "public" disk as "products/foo.jpg"
         if (Storage::disk('public')->exists($p)) {
-            return Storage::url($p); // -> /storage/products/foo.jpg
+            return Storage::url($p); 
         }
 
         // Last fallback guess

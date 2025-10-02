@@ -26,7 +26,7 @@ class StatusToggle extends Component
         // Reflect immediately in UI
         $this->status = $next;
 
-        // Optional: notify listeners (parent/table) if you add one later
+        
         $this->dispatch('product-status-updated', productId: $this->productId, status: $next);
     }
 

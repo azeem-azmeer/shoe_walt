@@ -1,4 +1,4 @@
-// resources/js/admin-product-create.js
+
 
 // ===== Image previews =====
 (function wirePreviews() {

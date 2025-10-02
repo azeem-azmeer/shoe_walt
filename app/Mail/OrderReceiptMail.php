@@ -28,7 +28,7 @@ class OrderReceiptMail extends Mailable
 public function build()
 {
     return $this->subject('Your Shoe Walt Order Receipt - #' . $this->order->id)
-                ->markdown('emails.orders.receipt')   // ✅ use markdown()
+                ->markdown('emails.orders.receipt')   
                 ->with(['order' => $this->order]);
 }
 

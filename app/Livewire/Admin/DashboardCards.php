@@ -28,7 +28,7 @@ class DashboardCards extends Component
 
     public function render()
     {
-        // Product totals (adjust if you only want active products)
+        
         $totalProducts = Product::count();
         $menProducts   = $this->categoryCount(['men', 'man', 'mens']);
         $womenProducts = $this->categoryCount(['women', 'woman', 'womens', 'womans']);
@@ -37,9 +37,9 @@ class DashboardCards extends Component
         // Orders
         $totalOrders = Order::count();
 
-        // ✅ TOTAL SALES (based on orders):
+        //  TOTAL SALES (based on orders):
         // Count only money you actually booked. Your enum is: Pending, Confirmed, Cancelled
-        // If you later add "Completed", include it in the whereIn below.
+        
         $totalSales = (float) Order::whereIn('status', ['Confirmed'])->sum('total');
 
         // Optional breakdowns:

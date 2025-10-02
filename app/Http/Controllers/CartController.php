@@ -235,7 +235,7 @@ class CartController extends Controller
                 'name'     => $p->product_name ?? 'Product',
                 'price'    => (float) ($p->price ?? 0),
                 'size'     => $row->size,
-                'quantity' => (int) $row->quantity, // not editable in UI
+                'quantity' => (int) $row->quantity, 
                 'img'      => $p?->main_image_url,
             ];
         })->values();

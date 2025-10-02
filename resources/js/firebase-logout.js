@@ -2,7 +2,7 @@ import { getAuth, signOut } from "firebase/auth";
 
 const auth = getAuth();
 
-// ✅ Expose globally so Blade/Alpine can call it
+//  Expose globally so Blade/Alpine can call it
 window.firebaseLogout = function () {
     return signOut(auth)
         .then(() => {

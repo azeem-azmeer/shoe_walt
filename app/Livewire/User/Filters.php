@@ -51,7 +51,7 @@ class Filters extends Component
     {
         $this->sort = (string) $sort;
 
-        $this->apply(); // Will redirect with ?sort=...
+        $this->apply(); 
     }
 
 }

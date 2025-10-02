@@ -22,7 +22,7 @@ class StillInterested extends Component
             ->where('status', 'Active')
             ->orderByDesc('product_id')
             ->take($this->limit)
-            ->get(); // <- pass models directly
+            ->get(); 
 
         return view('livewire.user.still-interested', compact('products'));
     }

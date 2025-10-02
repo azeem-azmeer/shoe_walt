@@ -25,7 +25,7 @@ class CustomerWishlist extends Model
 
     public function product()
     {
-        // products.product_id is the PK in your app
+        
         return $this->belongsTo(Product::class, 'product_id', 'product_id');
     }
 }

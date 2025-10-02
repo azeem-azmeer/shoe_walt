@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable; // 👈 so it can behave like a user
+use Illuminate\Foundation\Auth\User as Authenticatable; 
 
 class Admin extends Authenticatable
 {

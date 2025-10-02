@@ -18,7 +18,7 @@ class OrderController extends Controller
             ->latest()
             ->get();
 
-        $orderCount = $orders->count(); // ✅ total orders for this user
+        $orderCount = $orders->count(); 
 
         return view('user.orders', compact('orders', 'orderCount'));
     }

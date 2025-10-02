@@ -71,7 +71,7 @@ class CheckoutController extends Controller
                 'price'      => (float) $r->price,
                 'size'       => (string) $r->size,
                 'quantity'   => $q,
-                'qty'        => $q, // alias
+                'qty'        => $q, 
                 'line_total' => round($lineTotal, 2),
                 'img'        => $img
                     ? (preg_match('~^https?://~i', $img)

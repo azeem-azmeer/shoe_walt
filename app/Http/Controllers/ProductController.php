@@ -166,8 +166,8 @@ class ProductController extends Controller
                 ['label' => 'Home',  'href' => route('user.index')],
                 ['label' => $product->category ?? 'Products', 'href' => '#'],
             ],
-            'related'  => $related,           // <<< send normalized cards
-            // 'similarProducts' => $rows,     // (no longer needed by your Blade)
+            'related'  => $related,        
+           
         ]);
     }
 
@@ -326,7 +326,7 @@ class ProductController extends Controller
                 'main_image'            => 'nullable|file|mimes:jpg,jpeg,png,webp,avif|max:5120',
                 'view_images.*'         => 'nullable|file|mimes:jpg,jpeg,png,webp,avif|max:5120',
                 'remove_view_images.*'  => 'nullable|boolean',
-                'sizes'                 => 'required', // array or JSON string
+                'sizes'                 => 'required', 
             ]);
 
             $sizes = $this->parseSizes($validated['sizes']);
@@ -339,8 +339,8 @@ class ProductController extends Controller
                 }
 
                 // view images per-slot update
-                $incoming = $req->file('view_images', []);          // e.g. [0 => UploadedFile, 2 => UploadedFile]
-                $remove   = $req->input('remove_view_images', []);  // e.g. [1 => "1"]
+                $incoming = $req->file('view_images', []);          
+                $remove   = $req->input('remove_view_images', []);  
 
                 $old = [
                     $p->view_image1,

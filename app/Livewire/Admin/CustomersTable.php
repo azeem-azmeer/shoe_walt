@@ -15,9 +15,9 @@ class CustomersTable extends Component
 
     // Filters
     public string $q = '';
-    public string $verified = '';   // '', 'yes', 'no'
-    public string $withOrders = ''; // '', 'yes'
-    public string $sort = 'recent'; // 'recent', 'orders'
+    public string $verified = '';   
+    public string $withOrders = ''; 
+    public string $sort = 'recent'; 
     public int $perPage = 20;
 
     // Persist filters in URL
@@ -77,7 +77,7 @@ class CustomersTable extends Component
             )
             ->paginate($this->perPage);
 
-        $totalCustomers = (clone $base)->count(); // count AFTER filters except sort/perPage
+        $totalCustomers = (clone $base)->count(); 
 
         return view('livewire.admin.customers-table', [
             'users'          => $users,

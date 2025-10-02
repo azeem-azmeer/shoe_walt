@@ -8,7 +8,7 @@ use App\Models\Product;
 class Search extends Component
 {
     public string $q = '';
-    public bool $open = false;       // desktop suggestions popover
+    public bool $open = false;       
     public int $highlight = -1;
 
     public bool $showMobile = false; // mobile fullscreen overlay

@@ -53,7 +53,7 @@ class FirebaseAuthController extends Controller
             Log::error('Failed to verify Firebase ID token', ['reason' => $e->getMessage()]);
             return response()->json([
                 'message' => 'Invalid Firebase token',
-                'reason'  => $e->getMessage(),   // keep during debugging
+                'reason'  => $e->getMessage(),   
             ], 401);
         } catch (Throwable $e) {
             Log::error('Token verification error', ['err' => $e->getMessage()]);
@@ -82,8 +82,8 @@ class FirebaseAuthController extends Controller
         if (!$user) {
             $user = User::create([
                 'name'         => $name,
-                'email'        => $email,                       // may be null if Google didn’t return it
-                'password'     => bcrypt(str()->random(40)),    // placeholder
+                'email'        => $email,                      
+                'password'     => bcrypt(str()->random(40)),    
                 'firebase_uid' => $uid,
             ]);
         } elseif (!$user->firebase_uid) {

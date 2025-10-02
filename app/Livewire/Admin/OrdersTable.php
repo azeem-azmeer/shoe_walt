@@ -95,7 +95,7 @@ class OrdersTable extends Component
             ->orderBy('id', $this->sortDir === 'asc' ? 'asc' : 'desc')
             ->paginate($this->perPage);
 
-        // keep this same as your current UI
+        
         $orderCount = Order::count();
 
         return view('livewire.admin.orders-table', compact('orders', 'orderCount'));
