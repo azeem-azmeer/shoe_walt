@@ -222,7 +222,7 @@ public function store(Request $request)
 
     $order->load(['items.product']);
 
-    // ✅ Count the number of orders placed by this user
+    // Count the number of orders placed by this user
     $orderCount = $user->orders()->count();
 
     return view('user.order-show', [
